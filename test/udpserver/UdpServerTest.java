@@ -23,12 +23,12 @@ public class UdpServerTest {
 
         UdpServer.Handler handler = new UdpServer.Handler() {
             @Override
-            public void onOpen(UdpServer server) {
+            public void onStart(UdpServer server) {
                 log("Server started. " + server.toString());
             }
 
             @Override
-            public void onClose(UdpServer server) {
+            public void onStop(UdpServer server) {
                 log("Server stopped.");
             }
 
@@ -46,12 +46,12 @@ public class UdpServerTest {
         UdpServer sender = new UdpServer(UDP_PORT, InetAddress.getByName(UDP_ADDRESS), null);
         final UdpServer server = new UdpServer(UDP_PORT, InetAddress.getByName(UDP_ADDRESS), handler);
         server.start();
-        sender.send(new byte[server.getBufferLength()]);
-        sender.send(new byte[server.getBufferLength() * 2]);
+        sender.send(new byte[server.getDatagramLength()]);
+        sender.send(new byte[server.getDatagramLength() * 2]);
         Thread.sleep(50);
-        server.setBufferLength(server.getBufferLength() * 2);
-        sender.send(new byte[server.getBufferLength()]);
-        sender.send(new byte[server.getBufferLength() * 2]);
+        server.setDatagramLength(server.getDatagramLength() * 2);
+        sender.send(new byte[server.getDatagramLength()]);
+        sender.send(new byte[server.getDatagramLength() * 2]);
 
         final Timer timer = new Timer();
         timer.schedule(new TimerTask() {

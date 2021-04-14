@@ -16,10 +16,14 @@ import java.net.UnknownHostException;
 public class UdpServer extends Thread {
 
     public interface Handler {
-        void onOpen(UdpServer server);
+
+        void onStart(UdpServer server);
+
         void onUdpPacket(UdpServer server, DatagramPacket packet);
+
         void onUdpError(UdpServer server, Exception e);
-        void onClose(UdpServer server);
+
+        void onStop(UdpServer server);
     }
 
     private DatagramSocket socket;
@@ -31,7 +35,6 @@ public class UdpServer extends Thread {
     private Handler handler;
 
 //    private final ArrayDeque<DatagramPacket> packetQueue = new ArrayDeque();
-
 // port - binding (listening), connection, group port
 // inetAddr - connection/multicast group address
 // bindAddr - socket binding (interface) address
@@ -57,15 +60,20 @@ public class UdpServer extends Thread {
         return socket;
     }
 
-    public void setBufferLength(int length) throws IllegalArgumentException {
+    public void setDatagramLength(int length) throws IllegalArgumentException {
         if (length <= 0) {
             throw new IllegalArgumentException();
         }
         bufferLength = length;
     }
 
-    public int getBufferLength() {
+    public int getDatagramLength() {
         return bufferLength;
+    }
+
+    public boolean isListening() {
+        Thread.State state = this.getState();
+        return !(state == State.NEW || state == State.TERMINATED);
     }
 
     final void createServer(int port, InetAddress inetAddr, InetAddress bindAddr, UdpServer.Handler handler) throws UnknownHostException, IOException {
@@ -115,7 +123,7 @@ public class UdpServer extends Thread {
 
     @Override
     public void run() {
-        handler.onOpen(this);
+        handler.onStart(this);
         while (!socket.isClosed()) {
             try {
                 DatagramPacket dp
@@ -130,7 +138,7 @@ public class UdpServer extends Thread {
                 handler.onUdpError(this, e);
             }
         }
-        handler.onClose(this);
+        handler.onStop(this);
     }
 
     @Override
