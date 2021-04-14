@@ -9,17 +9,17 @@
     
     UdpServer.Handler:
       void onStart(UdpServer server);
-      void onUdpPacket(UdpServer server, DatagramPacket packet);
-      void onUdpError(UdpServer server, Exception e);
-      void onStop(UdpServer server);
+      void onDatagram(UdpServer server, DatagramPacket packet);
+      void onError(UdpServer server, Exception e);
+      void onShutdown(UdpServer server);
     
     Methods:
       void setDatagramLength(int length); // set receive buffer length for datagrams
       int getDatagramLength()
-      void start(); // start listening
-      void close();
+      void start();    // start listening
+      void shutdown(); // stop listening, close datagram socket
       void send(byte[] packet) throws IOException;
-      boolean isListening(); 
+      boolean isStarted(); 
       boolean isMulticastSocket();
       DatagramSocket getDatagramSocket();
 

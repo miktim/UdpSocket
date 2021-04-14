@@ -28,36 +28,40 @@ public class UdpServerTest {
             }
 
             @Override
-            public void onStop(UdpServer server) {
+            public void onShutdown(UdpServer server) {
                 log("Server stopped.");
             }
 
             @Override
-            public void onUdpPacket(UdpServer server, DatagramPacket packet) {
-                log("Receiver onPacket: size " + packet.getLength());
+            public void onDatagram(UdpServer server, DatagramPacket packet) {
+                log("Receiver onPacket: size " + packet.getLength()
+                + " from: " + packet.getAddress());
             }
 
             @Override
-            public void onUdpError(UdpServer server, Exception e) {
+            public void onError(UdpServer server, Exception e) {
                 log("Receiver onError: " + e);
             }
 
         };
-        UdpServer sender = new UdpServer(UDP_PORT, InetAddress.getByName(UDP_ADDRESS), null);
+        UdpServer sender = new UdpServer(UDP_PORT, InetAddress.getLocalHost(), handler);
         final UdpServer server = new UdpServer(UDP_PORT, InetAddress.getByName(UDP_ADDRESS), handler);
+//        final UdpServer server = new UdpServer(UDP_PORT, null, handler);
         server.start();
-        sender.send(new byte[server.getDatagramLength()]);
-        sender.send(new byte[server.getDatagramLength() * 2]);
+        sender.start();
+        sender.send(new byte[server.getDatagramLength()],InetAddress.getByName(UDP_ADDRESS));
+        sender.send(new byte[server.getDatagramLength() * 2],InetAddress.getByName(UDP_ADDRESS));
         Thread.sleep(50);
         server.setDatagramLength(server.getDatagramLength() * 2);
-        sender.send(new byte[server.getDatagramLength()]);
-        sender.send(new byte[server.getDatagramLength() * 2]);
+        server.send(new byte[server.getDatagramLength()]);
+        server.send(new byte[server.getDatagramLength() * 2]);
 
         final Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                server.close();
+                server.shutdown();
+                sender.shutdown();
                 timer.cancel();
             }
         }, SERVER_SHUTDOWN_TIMEOUT);
