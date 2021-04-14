@@ -4,17 +4,22 @@
   Overview:
     Constructors:
       UdpServer(int port, UdpServer.Handler handler) throws IOException; // broadcast
-      UdpServer(int port, InetAddress inetAddress, UdpServer.Handler handler) throws IOException;
+      UdpServer(int port, InetAddress inetAddr, UdpServer.Handler handler) throws IOException;
+      UdpServer(int port, InetAddress inetAddr, InetAddress bindAddr, UdpServer.Handler handler) throws IOException;
     
     UdpServer.Handler:
+      void onStart(UdpServer server);
       void onUdpPacket(UdpServer server, DatagramPacket packet);
       void onUdpError(UdpServer server, Exception e);
+      void onStop(UdpServer server);
     
     Methods:
+      void setDatagramLength(int length); // set receive buffer length for datagrams
+      int getDatagramLength()
       void start(); // start listening
       void close();
       void send(byte[] packet) throws IOException;
       boolean isListening(); 
-      boolean isMulticast();
+      boolean isMulticastSocket();
       DatagramSocket getDatagramSocket();
 
