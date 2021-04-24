@@ -29,17 +29,14 @@ public class UdpSocket extends Thread {
     }
 
     private DatagramSocket socket;
-    private int port;                // bind/connect port
-    private InetAddress inetAddress; // connect address
+    private int port;                // bind/connect/group port
+    private InetAddress inetAddress; // broadcast/connect/group address
     private InetAddress bindAddress; // bind (interface) address
-    private int bufferLength = 508; // 508 - IPv4 guaranteed receive packet size by any host
+    private int bufferLength = 508;  // 508 - IPv4 guaranteed receive packet size by any host
     // SO_RCVBUF size = 106496 (Linux x64)
     private Handler handler;
     private boolean isRunning = false;
 
-// port - binding (listening), connection, group port
-// inetAddr - connection/multicast group address
-// bindAddr - socket binding (interface) address
     public UdpSocket(int port, UdpSocket.Handler handler) throws Exception {
         createSocket(port, null, null, handler);
     }
@@ -74,8 +71,9 @@ public class UdpSocket extends Thread {
     }
 
     public boolean isReceiving() {
-        Thread.State state = this.getState();
-        return !(state == State.NEW || state == State.TERMINATED);
+//        Thread.State state = this.getState();
+//        return !(state == State.NEW || state == State.TERMINATED);
+        return isRunning;
     }
 
     public boolean isOpen() {
@@ -138,7 +136,7 @@ public class UdpSocket extends Thread {
     public void run() {
         handler.onStart(this);
         isRunning = true;
-        while (isRunning) {
+        while (isRunning && !socket.isClosed()) {
             try {
                 DatagramPacket dp
                         = new DatagramPacket(new byte[bufferLength], bufferLength);
@@ -147,12 +145,13 @@ public class UdpSocket extends Thread {
             } catch (java.net.SocketTimeoutException e) {
 // ignore
             } catch (IOException e) {
-                if (!isRunning) {
+                if (!isRunning || socket.isClosed()) {
                     break;
                 }
                 handler.onError(this, e);
             }
         }
+        isRunning = false;
         handler.onClose(this);
     }
 
