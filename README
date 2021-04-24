@@ -1,25 +1,26 @@
-# UdpServer, MIT (c) 2019-2021 miktim@mail.ru
+# UdpSocket, MIT (c) 2019-2021 miktim@mail.ru
   UDP broadcast/unicast/multicast sender/receiver
-  
+
   Overview:
+
     Constructors:
-      UdpServer(int port, UdpServer.Handler handler) throws IOException; // broadcast
-      UdpServer(int port, InetAddress inetAddr, UdpServer.Handler handler) throws IOException;
-      UdpServer(int port, InetAddress inetAddr, InetAddress bindAddr, UdpServer.Handler handler) throws IOException;
-    
-    UdpServer.Handler:
-      void onStart(UdpServer server);
-      void onDatagram(UdpServer server, DatagramPacket packet);
-      void onError(UdpServer server, Exception e);
-      void onShutdown(UdpServer server);
-    
+      UdpSocket(int port, UdpServer.Handler handler) throws IOException; // broadcast
+      UdpSocket(int port, InetAddress inetAddr, UdpServer.Handler handler) throws IOException;
+      UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr, UdpServer.Handler handler) throws IOException;
+
+    UdpSocket.Handler:
+      void onStart(UdpSocket socket);
+      void onPacket(UdpSocket socket, DatagramPacket packet);
+      void onError(UdpSocket socket, Exception e);
+      void onClose(UdpSocket socket);
+
     Methods:
       void setDatagramLength(int length); // set receive buffer length for datagrams
       int getDatagramLength()
-      void start();    // start listening
-      void shutdown(); // stop listening, close datagram socket
-      void send(byte[] packet) throws IOException;
-      boolean isStarted(); 
+      void start(); // start receiving
+      void close(); // stop receiving, close datagram socket
+      void send(byte[] buf) throws IOException;
+      static void send(byte[] buf, InetAddress inetAddr, int port) throws IOException;
+      boolean isReceiving(); 
       boolean isMulticastSocket();
       DatagramSocket getDatagramSocket();
-
