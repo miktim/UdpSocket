@@ -62,48 +62,48 @@ public class UdpSocketTest {
         InetAddress ia3 = InetAddress.getByName("225.4.5.6");
 
 // broadcast        
-        UdpSocket server = new UdpSocket(UDP_PORT,handler);
-        server.start();
+        UdpSocket socket = new UdpSocket(UDP_PORT,handler);
+        socket.start();
         Thread.sleep(10);
         send(new byte[12], ia0, UDP_PORT);
-        server.send(new byte[server.getDatagramLength()]);
+        socket.send(new byte[socket.getDatagramLength()]);
         Thread.sleep(10);
-        server.close();
+        socket.close();
 
 // multicast
-        server = new UdpSocket(UDP_PORT, ia3, null, handler);
-        server.start();
+        socket = new UdpSocket(UDP_PORT, ia3, null, handler);
+        socket.start();
 //        Thread.sleep(10);
         send(new byte[12], ia3, UDP_PORT);
-        server.send(new byte[server.getDatagramLength()]);
+        socket.send(new byte[socket.getDatagramLength()]);
         Thread.sleep(10);
-        server.close();
+        socket.close();
         
 // multicast bound to interface
-        server = new UdpSocket(UDP_PORT, ia3, ia1, handler);
-        server.start();
+        socket = new UdpSocket(UDP_PORT, ia3, ia1, handler);
+        socket.start();
 //        Thread.sleep(10);
         send(new byte[12], ia3, UDP_PORT);
-        server.send(new byte[server.getDatagramLength()]);
+        socket.send(new byte[socket.getDatagramLength()]);
         Thread.sleep(10);
-        server.close();
+        socket.close();
 
 // unicast
-        UdpSocket server1 = new UdpSocket(UDP_PORT, ia1, ia2, handler);
-        UdpSocket server2 = new UdpSocket(UDP_PORT, ia2, ia1, handler);
-        server2.start();
-        server1.start();
-        server1.send(new byte[server2.getDatagramLength()]);
-        server1.send(new byte[server2.getDatagramLength() * 2]);
+        UdpSocket socket1 = new UdpSocket(UDP_PORT, ia1, ia2, handler);
+        UdpSocket socket2 = new UdpSocket(UDP_PORT, ia2, ia1, handler);
+        socket2.start();
+        socket1.start();
+        socket1.send(new byte[socket2.getDatagramLength()]);
+        socket1.send(new byte[socket2.getDatagramLength() * 2]);
         send(new byte[13],ia2,UDP_PORT);
         Thread.sleep(10);
         send(new byte[14],ia1,UDP_PORT);
-        server1.setDatagramLength(server2.getDatagramLength() * 2);
-        server2.send(new byte[server2.getDatagramLength()]);
-        server2.send(new byte[server2.getDatagramLength() * 2]);
+        socket1.setDatagramLength(socket2.getDatagramLength() * 2);
+        socket2.send(new byte[socket2.getDatagramLength()]);
+        socket2.send(new byte[socket2.getDatagramLength() * 2]);
 
         Thread.sleep(10);
-        server1.close();
-        server2.close();
+        socket1.close();
+        socket2.close();
     }
 }
