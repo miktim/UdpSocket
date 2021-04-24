@@ -21,6 +21,7 @@
       void close(); // stop receiving, close datagram socket
       void send(byte[] buf) throws IOException;
       static void send(byte[] buf, InetAddress inetAddr, int port) throws IOException;
-      boolean isReceiving(); 
+      boolean isReceiving();
+      boolean isOpen(); 
       boolean isMulticastSocket();
-      DatagramSocket getDatagramSocket();
+      DatagramSocket getSocket();

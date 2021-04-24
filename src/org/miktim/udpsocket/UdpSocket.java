@@ -36,8 +36,6 @@ public class UdpSocket extends Thread {
     // SO_RCVBUF size = 106496 (Linux x64)
     private Handler handler;
     private boolean isRunning = false;
-//    private InetSocketAddress mcastGroup;
-//    private NetworkInterface mcastNetIf;
 
 // port - binding (listening), connection, group port
 // inetAddr - connection/multicast group address
@@ -80,8 +78,11 @@ public class UdpSocket extends Thread {
         return !(state == State.NEW || state == State.TERMINATED);
     }
 
-    final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr, UdpSocket.Handler handler) throws UnknownHostException, IOException {
+    public boolean isOpen() {
+        return !socket.isClosed();
+    }
 
+    final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr, UdpSocket.Handler handler) throws UnknownHostException, IOException {
         if (handler == null) {
             throw new NullPointerException("No handler");
         }
@@ -102,19 +103,20 @@ public class UdpSocket extends Thread {
             MulticastSocket mcastSocket = isAndroid()
                     ? new MulticastSocket() : new MulticastSocket(null);
             mcastSocket.setReuseAddress(true);
-            mcastSocket.bind(socketAddr);
+//            mcastSocket.bind(socketAddr); // ??? bind for interface?
             if (bindAddr != null) {
                 mcastSocket.joinGroup(
                         new InetSocketAddress(inetAddress, port),
                         NetworkInterface.getByInetAddress(bindAddr));
             } else {
+                mcastSocket.bind(socketAddr); // ???
                 mcastSocket.joinGroup(inetAddress);
             }
             mcastSocket.setLoopbackMode(true);
             mcastSocket.setTimeToLive(1);
             socket = mcastSocket;
         } else {
-            socket = isAndroid() 
+            socket = isAndroid()
                     ? new DatagramSocket() : new DatagramSocket(null);
             socket.setReuseAddress(true);
             socket.bind(socketAddr);
@@ -124,7 +126,6 @@ public class UdpSocket extends Thread {
                 socket.setBroadcast(true);
             }
         }
-
         socket.setSoTimeout(500); // !!!
     }
 
@@ -201,7 +202,6 @@ public class UdpSocket extends Thread {
         isRunning = false;
         socket.close();
     }
-
     public void send(byte[] buf) throws IOException {
         socket.send(new DatagramPacket(buf, buf.length, inetAddress, port));
     }
