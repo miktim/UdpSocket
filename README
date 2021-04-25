@@ -1,27 +1,30 @@
 # UdpSocket, MIT (c) 2019-2021 miktim@mail.ru
   UDP broadcast/unicast/multicast sender/receiver
+  
+  Release notes:
+    - bind addresses reusable;
+    - multicast sockets creates with disabled loopback and one hop.
 
   Overview:
 
     Constructors:
-      UdpSocket(int port, UdpServer.Handler handler) throws IOException; // broadcast
-      UdpSocket(int port, InetAddress inetAddr, UdpServer.Handler handler) throws IOException;
-      UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr, UdpServer.Handler handler) throws IOException;
+      UdpSocket(int port) throws IOException; // broadcast datagram socket
+      UdpSocket(int port, InetAddress inetAddrr) throws IOException;
+      UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws IOException;
+
+    Methods:
+      void send(byte[] buf) throws IOException;
+      void setDatagramLength(int length); // set receive buffer length for datagrams
+      int getDatagramLength()
+      void receive(UdpServer.handler handler); // start receiving
+      void close(); // stop receiving, close datagram socket
+      boolean isOpen(); 
+      boolean isReceiving();
+      boolean isMulticastSocket();
+      DatagramSocket getSocket();
 
     UdpSocket.Handler:
       void onStart(UdpSocket socket);
       void onPacket(UdpSocket socket, DatagramPacket packet);
       void onError(UdpSocket socket, Exception e);
       void onClose(UdpSocket socket);
-
-    Methods:
-      void setDatagramLength(int length); // set receive buffer length for datagrams
-      int getDatagramLength()
-      void start(); // start receiving
-      void close(); // stop receiving, close datagram socket
-      void send(byte[] buf) throws IOException;
-      static void send(byte[] buf, InetAddress inetAddr, int port) throws IOException;
-      boolean isReceiving();
-      boolean isOpen(); 
-      boolean isMulticastSocket();
-      DatagramSocket getSocket();

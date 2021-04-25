@@ -15,13 +15,15 @@ public class UdpSocketTest {
     static final int UDP_PORT = 9090;
     static final int RECEIVER_TIMEOUT = 30000;
     static final int RECEIVER_DELAY = 100;
-    
+
     static void log(String s) {
         System.out.println(s);
     }
+
     static String receiverId() {
-        return "Receiver"+Thread.currentThread().getId();
+        return "Receiver" + Thread.currentThread().getId();
     }
+
     public static void main(String[] args) throws Exception {
 
         UdpSocket.Handler handler = new UdpSocket.Handler() {
@@ -37,13 +39,13 @@ public class UdpSocketTest {
 
             @Override
             public void onPacket(UdpSocket socket, DatagramPacket packet) {
-                log(receiverId() +" onPacket: size " + packet.getLength()
+                log(receiverId() + " onPacket: size " + packet.getLength()
                         + " to: " + packet.getAddress());
             }
 
             @Override
             public void onError(UdpSocket socket, Exception e) {
-                log(receiverId()+ " onError: " + e);
+                log(receiverId() + " onError: " + e);
             }
 
         };
@@ -53,26 +55,29 @@ public class UdpSocketTest {
         InetAddress ia2 = InetAddress.getByName("localhost");
         InetAddress ia3 = InetAddress.getByName("224.0.0.1"); // all systems in this subnet
 
+        log("UdpSocket test");
+        log("");
+
 // broadcast        
-        UdpSocket socket = new UdpSocket(UDP_PORT, handler);
-        socket.start();
+        UdpSocket socket = new UdpSocket(UDP_PORT);
+        socket.receive(handler);
         Thread.sleep(RECEIVER_DELAY); // delay for starting receiver
-        UdpSocket.send(new byte[12], ia0, UDP_PORT);
+//        UdpSocket.send(new byte[12], ia0, UDP_PORT);
         socket.send(new byte[socket.getDatagramLength()]);
         Thread.sleep(RECEIVER_DELAY); // closing delay for receiving packets
         socket.close();
 
 // unicast
-        UdpSocket socket1 = new UdpSocket(UDP_PORT, ia1, ia2, handler);
-        UdpSocket socket2 = new UdpSocket(UDP_PORT, ia2, ia1, handler);
-        socket2.start();
-        socket1.start();
+        UdpSocket socket1 = new UdpSocket(UDP_PORT, ia1, ia2);
+        UdpSocket socket2 = new UdpSocket(UDP_PORT, ia2, ia1);
+        socket2.receive(handler);
+        socket1.receive(handler);
         Thread.sleep(RECEIVER_DELAY); // delay for starting receivers
 
         socket1.send(new byte[socket2.getDatagramLength()]);
         socket1.send(new byte[socket2.getDatagramLength() * 2]);
-        UdpSocket.send(new byte[13], ia2, UDP_PORT);
-        UdpSocket.send(new byte[14], ia1, UDP_PORT);
+//        UdpSocket.send(new byte[13], ia2, UDP_PORT);
+//        UdpSocket.send(new byte[14], ia1, UDP_PORT);
         socket1.setDatagramLength(socket2.getDatagramLength() * 2);
         socket2.send(new byte[socket2.getDatagramLength()]);
         socket2.send(new byte[socket2.getDatagramLength() * 2]);
@@ -82,13 +87,13 @@ public class UdpSocketTest {
         socket2.close();
 
 // multicast, bound to port
-        final UdpSocket socket3 = new UdpSocket(UDP_PORT, ia3, null, handler);
-        socket3.start();
+        final UdpSocket socket3 = new UdpSocket(UDP_PORT, ia3);
+        socket3.receive(handler);
 // multicast, bound to interface
-        final UdpSocket socket4 = new UdpSocket(UDP_PORT, ia3, ia1, handler);
-        socket4.start();
+        final UdpSocket socket4 = new UdpSocket(UDP_PORT, ia3, ia1);
+        socket4.receive(handler);
         Thread.sleep(RECEIVER_DELAY); // delay for starting receivers
-        
+
         final Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
@@ -98,10 +103,11 @@ public class UdpSocketTest {
                 timer.cancel();
             }
         }, RECEIVER_TIMEOUT);
+
         int count = 0;
         while (socket3.isReceiving() && socket4.isReceiving()) {
-            UdpSocket.send(new byte[15], ia3, UDP_PORT);
-            socket3.send(new byte[socket.getDatagramLength()/2]);
+//            UdpSocket.send(new byte[15], ia3, UDP_PORT);
+            socket3.send(new byte[socket.getDatagramLength() / 2]);
             socket4.send(new byte[socket.getDatagramLength()]);
             Thread.sleep(2000); // sending delay
             if (++count == 10) {

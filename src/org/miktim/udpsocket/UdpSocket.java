@@ -37,18 +37,18 @@ public class UdpSocket extends Thread {
     private Handler handler;
     private boolean isRunning = false;
 
-    public UdpSocket(int port, UdpSocket.Handler handler) throws Exception {
-        createSocket(port, null, null, handler);
+    public UdpSocket(int port) throws Exception {
+        createSocket(port, null, null);
     }
 
-    public UdpSocket(int port, InetAddress inetAddress, UdpSocket.Handler handler)
+    public UdpSocket(int port, InetAddress inetAddress)
             throws Exception {
-        createSocket(port, inetAddress, null, handler);
+        createSocket(port, inetAddress, null);
     }
 
-    public UdpSocket(int port, InetAddress inetAddress, InetAddress bindAddr, UdpSocket.Handler handler)
+    public UdpSocket(int port, InetAddress inetAddress, InetAddress bindAddr)
             throws Exception {
-        createSocket(port, inetAddress, bindAddr, handler);
+        createSocket(port, inetAddress, bindAddr);
     }
 
     public boolean isMulticastSocket() {
@@ -80,15 +80,12 @@ public class UdpSocket extends Thread {
         return !socket.isClosed();
     }
 
-    final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr, UdpSocket.Handler handler) throws UnknownHostException, IOException {
-        if (handler == null) {
-            throw new NullPointerException("No handler");
-        }
+    final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws UnknownHostException, IOException {
         this.port = port;
         inetAddress = inetAddr != null ? inetAddr : InetAddress.getByName("0.0.0.0");
-        bindAddress = bindAddr == null && inetAddr == null
-                ? InetAddress.getByName("0.0.0.0") : bindAddr;
-        this.handler = handler;
+        bindAddress = bindAddr;
+//        bindAddress = bindAddr == null && inetAddr == null
+//                ? InetAddress.getByName("0.0.0.0") : bindAddr;
         if (bindAddr != null && NetworkInterface.getByInetAddress(bindAddr) == null) {
             throw new SocketException("Not interface");
         }
@@ -101,15 +98,8 @@ public class UdpSocket extends Thread {
             MulticastSocket mcastSocket = isAndroid()
                     ? new MulticastSocket() : new MulticastSocket(null);
             mcastSocket.setReuseAddress(true);
-//            mcastSocket.bind(socketAddr); // ??? bind for interface?
-            if (bindAddr != null) {
-                mcastSocket.joinGroup(
-                        new InetSocketAddress(inetAddress, port),
-                        NetworkInterface.getByInetAddress(bindAddr));
-            } else {
-                mcastSocket.bind(socketAddr); // ???
-                mcastSocket.joinGroup(inetAddress);
-            }
+            mcastSocket.bind(socketAddr); // ??? bind for interface?
+            mcastSocket.joinGroup(inetAddress);
             mcastSocket.setLoopbackMode(true);
             mcastSocket.setTimeToLive(1);
             socket = mcastSocket;
@@ -118,7 +108,7 @@ public class UdpSocket extends Thread {
                     ? new DatagramSocket() : new DatagramSocket(null);
             socket.setReuseAddress(true);
             socket.bind(socketAddr);
-            if (inetAddr != null) {
+            if (!inetAddress.isAnyLocalAddress()) {
                 socket.connect(new InetSocketAddress(inetAddress, port));
             } else {
                 socket.setBroadcast(true);
@@ -132,10 +122,23 @@ public class UdpSocket extends Thread {
         return System.getProperty("java.runtime.name").equals("Android Runtime");
     }
 
+    public void receive(UdpSocket.Handler handler) {
+        this.handler = handler;
+        this.start();
+    }
+
+    @Override
+    public void start() {
+        if (handler == null) {
+            throw new NullPointerException("No handler");
+        }
+        super.start();
+    }
+
     @Override
     public void run() {
-        handler.onStart(this);
         isRunning = true;
+        handler.onStart(this);
         while (isRunning && !socket.isClosed()) {
             try {
                 DatagramPacket dp
@@ -157,14 +160,13 @@ public class UdpSocket extends Thread {
 
     @Override
     public String toString() {
-//        try {
         String serverType = (socket.isConnected() ? "Unicast"
                 : ((inetAddress.isMulticastAddress() ? "Multicast"
                 : "Broadcast"))) + " UDP socket";
         String mcGroup = inetAddress.isMulticastAddress()
                 ? (" MCgroup "
-                + (inetAddress.isMCGlobal() ? "global," : "local,")
-                + inetAddress)
+                + (inetAddress.isMCGlobal() ? "global" : "local")
+                + inetAddress + ":" + port)
                 : "";
         String boundTo = socket.isBound()
                 ? (" is bound to " + socket.getLocalSocketAddress())
@@ -173,34 +175,31 @@ public class UdpSocket extends Thread {
                 ? (" connected to " + socket.getRemoteSocketAddress())
                 : "";
         return serverType + mcGroup + connectedTo + boundTo;
-//        } catch (IOException e) {
-//            return e.toString();
-//        }
     }
 
     public void close() {
+        if (isRunning) {
+            isRunning = false;
+            try {
+                this.join();
+            } catch (InterruptedException e) {
+            }
+        }
         if (!socket.isClosed()) {
             try {
                 if (isMulticastSocket()) {
-                    if (bindAddress != null) {
-                        ((MulticastSocket) socket).leaveGroup(
-                                new InetSocketAddress(inetAddress, port),
-                                NetworkInterface.getByInetAddress(bindAddress));
-
-                    } else {
-                        ((MulticastSocket) socket).leaveGroup(inetAddress);
-                    }
+                    ((MulticastSocket) socket).leaveGroup(inetAddress);
                 }
                 if (socket.isConnected()) {
                     socket.disconnect();
                 }
             } catch (IOException e) {
-                handler.onError(this, e);
+//                handler.onError(this, e);
             }
         }
-        isRunning = false;
         socket.close();
     }
+
     public void send(byte[] buf) throws IOException {
         socket.send(new DatagramPacket(buf, buf.length, inetAddress, port));
     }
