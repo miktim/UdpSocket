@@ -25,7 +25,7 @@ public class UdpSocket extends Thread {
 
         void onError(UdpSocket s, Exception e);
 
-        void onClose(UdpSocket s);
+        void onClose(UdpSocket s); // called before closing datagram socket
     }
 
     private DatagramSocket socket;
@@ -51,7 +51,7 @@ public class UdpSocket extends Thread {
         createSocket(port, inetAddress, bindAddr);
     }
 
-    public boolean isMulticastSocket() {
+    public boolean isMulticast() {
         return inetAddress.isMulticastAddress();
     }
 
@@ -59,15 +59,21 @@ public class UdpSocket extends Thread {
         return socket;
     }
 
-    public void setDatagramLength(int length) throws IllegalArgumentException {
+    public void setBufferLength(int length) throws IllegalArgumentException {
         if (length <= 0) {
             throw new IllegalArgumentException();
         }
         bufferLength = length;
     }
 
-    public int getDatagramLength() {
+    public int getBufferLength() {
         return bufferLength;
+    }
+    
+    public InetSocketAddress getGroup() {
+        if (isMulticast())
+        return new InetSocketAddress(inetAddress, port);
+        else return null;
     }
 
     public boolean isReceiving() {
@@ -84,8 +90,7 @@ public class UdpSocket extends Thread {
         this.port = port;
         inetAddress = inetAddr != null ? inetAddr : InetAddress.getByName("0.0.0.0");
         bindAddress = bindAddr;
-//        bindAddress = bindAddr == null && inetAddr == null
-//                ? InetAddress.getByName("0.0.0.0") : bindAddr;
+
         if (bindAddr != null && NetworkInterface.getByInetAddress(bindAddr) == null) {
             throw new SocketException("Not interface");
         }
@@ -95,33 +100,37 @@ public class UdpSocket extends Thread {
                 throw new SocketException("Not multicast");
             }
 // https://stackoverflow.com/questions/10071107/rebinding-a-port-to-datagram-socket-on-a-difftent-ip
-            MulticastSocket mcastSocket = isAndroid()
-                    ? new MulticastSocket() : new MulticastSocket(null);
-            mcastSocket.setReuseAddress(true);
-            mcastSocket.bind(socketAddr); // ??? bind for interface?
+// I'm failed to achieve stable work on different operating systems
+//            MulticastSocket mcastSocket = needsNullSocketAddress()
+//                    ? new MulticastSocket(null) : new MulticastSocket();
+//            mcastSocket.setReuseAddress(true);
+//            mcastSocket.bind(socketAddr); // 
+            MulticastSocket mcastSocket = new MulticastSocket(socketAddr);
             mcastSocket.joinGroup(inetAddress);
             mcastSocket.setLoopbackMode(true);
             mcastSocket.setTimeToLive(1);
             socket = mcastSocket;
         } else {
-            socket = isAndroid()
-                    ? new DatagramSocket() : new DatagramSocket(null);
-            socket.setReuseAddress(true);
-            socket.bind(socketAddr);
+//            socket = needsNullSocketAddress()
+//                    ? new DatagramSocket(null) : new DatagramSocket();
+//            socket.setReuseAddress(true);
+//            socket.bind(socketAddr);
+            socket = new DatagramSocket(socketAddr);
             if (!inetAddress.isAnyLocalAddress()) {
                 socket.connect(new InetSocketAddress(inetAddress, port));
             } else {
                 socket.setBroadcast(true);
             }
         }
-        socket.setSoTimeout(500); // !!!
+        socket.setSoTimeout(500); // !!! DO NOT disable
     }
 
 // https://stackoverflow.com/questions/4519556/how-to-determine-if-my-app-is-running-on-android
-    private boolean isAndroid() {
-        return System.getProperty("java.runtime.name").equals("Android Runtime");
-    }
-
+//    private boolean needsNullSocketAddress() {
+//        return System.getProperty("os.name").startsWith("Linux");
+////        return !System.getProperty("java.runtime.name").equals("Android Runtime");
+//    }
+    
     public void receive(UdpSocket.Handler handler) {
         this.handler = handler;
         this.start();
@@ -146,7 +155,8 @@ public class UdpSocket extends Thread {
                 socket.receive(dp);
                 handler.onPacket(this, dp);
             } catch (java.net.SocketTimeoutException e) {
-// ignore
+// it takes a timeout to close the socket properly.
+// DO NOT DISABLE the socket timeout!
             } catch (IOException e) {
                 if (!isRunning || socket.isClosed()) {
                     break;
@@ -187,7 +197,7 @@ public class UdpSocket extends Thread {
         }
         if (!socket.isClosed()) {
             try {
-                if (isMulticastSocket()) {
+                if (isMulticast()) {
                     ((MulticastSocket) socket).leaveGroup(inetAddress);
                 }
                 if (socket.isConnected()) {

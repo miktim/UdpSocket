@@ -1,9 +1,10 @@
-# UdpSocket, MIT (c) 2019-2021 miktim@mail.ru
+# UdpSocket, MIT (c) 2019,2021 miktim@mail.ru
   UDP broadcast/unicast/multicast sender/receiver
   
   Release notes:
-    - bind addresses reusable;
-    - multicast sockets creates with disabled loopback and one hop.
+    - address reuse is not supported;
+    - multicast sockets are created with loopback disabled and one hop;
+    - DO NOT disable socket timeout.
 
   Overview:
 
@@ -14,17 +15,18 @@
 
     Methods:
       void send(byte[] buf) throws IOException;
-      void setDatagramLength(int length); // set receive buffer length for datagrams
-      int getDatagramLength()
-      void receive(UdpServer.handler handler); // start receiving
+      void setBufferLength(int length); // set the buffer length of incoming datagrams
+      int getBufferLength()
+      void receive(UdpSocket.handler handler); // start receiving
       void close(); // stop receiving, close datagram socket
       boolean isOpen(); 
       boolean isReceiving();
-      boolean isMulticastSocket();
+      boolean isMulticast();
+      InetSocketAddress getGroup(); // datagram socket returns null
       DatagramSocket getSocket();
 
     UdpSocket.Handler:
       void onStart(UdpSocket socket);
       void onPacket(UdpSocket socket, DatagramPacket packet);
       void onError(UdpSocket socket, Exception e);
-      void onClose(UdpSocket socket);
+      void onClose(UdpSocket socket); // called BEFORE closing the socket
