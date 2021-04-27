@@ -2,7 +2,7 @@
   UDP broadcast/unicast/multicast sender/receiver
   
   Release notes:
-    - address reuse is not supported;
+    - don't forget to enable the required udp port in your firewall;
     - multicast sockets are created with loopback disabled and one hop;
     - DO NOT disable socket timeout.
 
