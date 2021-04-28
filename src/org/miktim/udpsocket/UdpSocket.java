@@ -28,16 +28,16 @@ public class UdpSocket extends Thread {
         void onClose(UdpSocket s); // called before closing datagram socket
     }
 
-    public static boolean reuseAddressAllowed = false;
+    public static boolean reuseAddressEnabled = false;
     public static boolean nullSocketRequired = true; // Android - false; Linux,Windows - true 
 
-    public static void allowReuseAddress(boolean nullRquired) {
+    public static void enableReuseAddress(boolean nullRquired) {
         nullSocketRequired = nullRquired;
-        reuseAddressAllowed = true;
+        reuseAddressEnabled = true;
     }
 
-    public static void prohibitReuseAddress() {
-        reuseAddressAllowed = false;
+    public static void disableReuseAddress() {
+        reuseAddressEnabled = false;
     }
 
     private DatagramSocket socket;
@@ -115,7 +115,7 @@ public class UdpSocket extends Thread {
                 throw new SocketException("Not multicast");
             }
             MulticastSocket mcastSocket;
-            if (reuseAddressAllowed) {
+            if (reuseAddressEnabled) {
 // https://stackoverflow.com/questions/10071107/rebinding-a-port-to-datagram-socket-on-a-difftent-ip
                 mcastSocket = nullSocketRequired
                         ? new MulticastSocket(null) : new MulticastSocket();
@@ -135,7 +135,7 @@ public class UdpSocket extends Thread {
             mcastSocket.setTimeToLive(1);
             socket = mcastSocket;
         } else {
-            if (reuseAddressAllowed) {
+            if (reuseAddressEnabled) {
                 socket = nullSocketRequired
                         ? new DatagramSocket(null) : new DatagramSocket();
                 socket.setReuseAddress(true);

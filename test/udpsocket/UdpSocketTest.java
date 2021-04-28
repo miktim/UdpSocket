@@ -73,12 +73,12 @@ public class UdpSocketTest {
 
         boolean reuseAddress = false;
 // "true" for Windows, Linux (Android yet not tested)        
-        UdpSocket.allowReuseAddress(true);
+        UdpSocket.enableReuseAddress(true);
         try {
             UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);
             socket1.close();
         } catch (IOException e) {
-            UdpSocket.prohibitReuseAddress();
+            UdpSocket.disableReuseAddress();
         }
         
 // broadcast        
@@ -94,7 +94,7 @@ public class UdpSocketTest {
         Thread.sleep(RECEIVER_DELAY); // closing delay for receiving packets
 
         if (!udpPortAccessible) {
-            log("UDP port " + UDP_PORT + " is not accessible! Exitig test.");
+            log("\r\nUDP port " + UDP_PORT + " is not accessible! Exit.");
             System.exit(1);
         } else {
             log("\r\nUDP port " + UDP_PORT + " is accessible.");
@@ -104,9 +104,9 @@ public class UdpSocketTest {
             UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);
             socket1.close();
             reuseAddress = true;
-            log("Reuse address is allowed.\r\n");
+            log("Reuse address is enabled.\r\n");
         } catch (IOException e) {
-            UdpSocket.prohibitReuseAddress();
+            UdpSocket.disableReuseAddress();
             log("Failed to reuse address!\r\n");
         }
         if (!reuseAddress) {
@@ -163,7 +163,7 @@ public class UdpSocketTest {
             }
             Thread.sleep(RECEIVER_TIMEOUT / 10); // delay sending
             if (++count == 5) {
-                log("\r\nMulticast socket loopback enabled.\r\n");
+                log("\r\nMulticast sockets loopback enabled.\r\n");
                 ((MulticastSocket) (socket3.getSocket())).setLoopbackMode(false);
                 ((MulticastSocket) (socket4.getSocket())).setLoopbackMode(false);
             }
