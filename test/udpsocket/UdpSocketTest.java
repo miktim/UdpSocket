@@ -13,12 +13,12 @@ import org.miktim.udpsocket.UdpSocket;
 
 public class UdpSocketTest {
 
-    static final int UDP_PORT = 9099;
+    static final int UDP_PORT = 9099; // IANA registry unused
 // delay for starting the receivers and completely receiving packets before closing
     static final int RECEIVER_DELAY = 100;
 // timeouted multicast receiving/sending
     static final int RECEIVER_TIMEOUT = 30000;
-    static final String EXTERNAL_ADDRESS = "192.168.1.105"; // not used
+    static final String EXTERNAL_ADDRESS = "192.168.1.105"; 
 
     static void log(String s) {
         System.out.println(s);
@@ -48,8 +48,8 @@ public class UdpSocketTest {
 
             @Override
             public void onPacket(UdpSocket socket, DatagramPacket packet) {
-                log(socketId(socket) + " onPacket: size " + packet.getLength()
-                        + " to: " + packet.getAddress());
+                log(socketId(socket) + " onPacket: " + packet.getLength()
+                        + packet.getAddress() + ":" + packet.getPort());
             }
 
             @Override
@@ -59,7 +59,7 @@ public class UdpSocketTest {
 
         };
 
-        InetAddress ia0 = InetAddress.getByName("0.0.0.0");
+        InetAddress ia0 = InetAddress.getByName("255.255.255.255");
         InetAddress ia1 = InetAddress.getLocalHost();
         InetAddress ia2 = InetAddress.getByName("localhost");
         InetAddress ia3 = InetAddress.getByName("224.0.0.1"); // all systems in this subnet
@@ -73,7 +73,7 @@ public class UdpSocketTest {
         socket.receive(handler);
         Thread.sleep(RECEIVER_DELAY); // delay for starting receiver
         try {
-            UdpSocket.send(new byte[socket.getBufferLength()/2], ia0, UDP_PORT);
+            UdpSocket.send(new byte[socket.getBufferLength() / 2], ia0, UDP_PORT);
             socket.send(new byte[socket.getBufferLength()]);
         } catch (IOException e) {
             e.printStackTrace();

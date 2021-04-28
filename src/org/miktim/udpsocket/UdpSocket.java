@@ -29,7 +29,7 @@ public class UdpSocket extends Thread {
     }
 
     public static boolean tryReuseAddress = false;
-    public static boolean nullAddressRequired = true; // Android - false; Linux,Windows - true 
+    public static boolean nullSocketRequired = true; // Android - false; Linux,Windows - true 
 
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
@@ -57,6 +57,12 @@ public class UdpSocket extends Thread {
         return inetAddress.isMulticastAddress();
     }
 
+// any ipv4 address ending in .255 (in fact, the subnet mask may be different from /24)
+    public boolean isBroadcast() {
+        byte[] b = inetAddress.getAddress();
+        return b.length == 4 && b[3] == (byte) 255;
+    }
+
     public DatagramSocket getSocket() {
         return socket;
     }
@@ -72,12 +78,8 @@ public class UdpSocket extends Thread {
         return bufferLength;
     }
 
-    public InetSocketAddress getGroup() {
-        if (isMulticast()) {
-            return new InetSocketAddress(inetAddress, port);
-        } else {
-            return null;
-        }
+    public InetAddress getInetAddress() {
+        return inetAddress;
     }
 
     public boolean isReceiving() {
@@ -93,7 +95,7 @@ public class UdpSocket extends Thread {
     final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws UnknownHostException, IOException {
         this.port = port;
         inetAddress = inetAddr != null
-                ? inetAddr : InetAddress.getByName("0.0.0.0");
+                ? inetAddr : InetAddress.getByName("255.255.255.255");
         if (bindAddr != null && NetworkInterface.getByInetAddress(bindAddr) == null) {
             throw new SocketException("Not interface");
         }
@@ -107,33 +109,33 @@ public class UdpSocket extends Thread {
             if (tryReuseAddress) {
 // https://stackoverflow.com/questions/10071107/rebinding-a-port-to-datagram-socket-on-a-difftent-ip
 // I'm failed to achieve stable work on different operating systems
-                mcastSocket = nullAddressRequired
+                mcastSocket = nullSocketRequired
                         ? new MulticastSocket(null) : new MulticastSocket();
                 mcastSocket.setReuseAddress(true);
                 mcastSocket.bind(socketAddr); //
             } else {
                 mcastSocket = new MulticastSocket(socketAddr);
             }
-            if (bindAddr == null) {
+//            if (bindAddr == null) {
                 mcastSocket.joinGroup(inetAddress);
-            } else {
-                mcastSocket.joinGroup(
-                        getGroup(),
-                        NetworkInterface.getByInetAddress(bindAddr));
-            }
+//            } else {
+//                mcastSocket.joinGroup(
+//                        getGroup(),
+//                        NetworkInterface.getByInetAddress(bindAddr));
+//            }
             mcastSocket.setLoopbackMode(true); // disable loopback
             mcastSocket.setTimeToLive(1);
             socket = mcastSocket;
         } else {
             if (tryReuseAddress) {
-                socket = nullAddressRequired
+                socket = nullSocketRequired
                         ? new DatagramSocket(null) : new DatagramSocket();
                 socket.setReuseAddress(true);
                 socket.bind(socketAddr);
             } else {
                 socket = new DatagramSocket(socketAddr);
             }
-            if (inetAddress.isAnyLocalAddress()) {
+            if (isBroadcast()) {
                 socket.setBroadcast(true);
             } else {
                 socket.connect(new InetSocketAddress(inetAddress, port));
@@ -143,7 +145,7 @@ public class UdpSocket extends Thread {
     }
 
 // https://stackoverflow.com/questions/4519556/how-to-determine-if-my-app-is-running-on-android
-//    private boolean nullAddressRequired() {
+//    private boolean nullSocketRequired() {
 //        return System.getProperty("os.name").startsWith("Linux");
 ////        return !System.getProperty("java.runtime.name").equals("Android Runtime");
 //    }
@@ -200,7 +202,9 @@ public class UdpSocket extends Thread {
         String connectedTo = socket.isConnected()
                 ? " connected to " + socket.getRemoteSocketAddress()
                 : "";
-        return serverType + mcGroup + connectedTo + boundTo;
+        String broadcast = isBroadcast() ? " " + inetAddress + ":" + port
+                : "";
+        return serverType + broadcast + mcGroup + connectedTo + boundTo;
     }
 
     public void close() {
@@ -214,13 +218,13 @@ public class UdpSocket extends Thread {
         if (!socket.isClosed()) {
             try {
                 if (isMulticast()) {
-                    NetworkInterface netIf
-                            = ((MulticastSocket) socket).getNetworkInterface();
-                    if (netIf == null) {
+//                    NetworkInterface netIf
+//                            = ((MulticastSocket) socket).getNetworkInterface();
+//                    if (netIf == null) {
                         ((MulticastSocket) socket).leaveGroup(inetAddress);
-                    } else {
-                        ((MulticastSocket) socket).leaveGroup(getGroup(), netIf);
-                    }
+//                    } else {
+//                        ((MulticastSocket) socket).leaveGroup(getGroup(), netIf);
+//                    }
                 }
                 if (socket.isConnected()) {
                     socket.disconnect();

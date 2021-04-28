@@ -22,7 +22,8 @@
       boolean isOpen(); 
       boolean isReceiving();
       boolean isMulticast();
-      InetSocketAddress getGroup(); // datagram socket returns null
+      boolean isBroadcast(); // any ipv4 address ending in .255 (in fact, the subnet mask may be different from /24)
+      InetAddress getInetAddress(); //
       DatagramSocket getSocket();
 
     UdpSocket.Handler:
