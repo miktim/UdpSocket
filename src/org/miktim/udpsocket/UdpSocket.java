@@ -43,8 +43,8 @@ public class UdpSocket extends Thread {
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
     private InetAddress inetAddress; // broadcast/connect/group address
-    private int bufferLength = 508;  // 508 - IPv4 guaranteed receive packet size by any host
-    // SO_RCVBUF size = 106496 (Linux x64)
+    private int bufferLength = 508; // 508 - IPv4 guaranteed receive packet size by any host 
+    // For any case: SO_RCVBUF size = 106496 (Linux x64)
     private Handler handler;
     private boolean isRunning = false;
 
@@ -117,7 +117,6 @@ public class UdpSocket extends Thread {
             MulticastSocket mcastSocket;
             if (reuseAddressAllowed) {
 // https://stackoverflow.com/questions/10071107/rebinding-a-port-to-datagram-socket-on-a-difftent-ip
-// I'm failed to achieve stable work on different operating systems
                 mcastSocket = nullSocketRequired
                         ? new MulticastSocket(null) : new MulticastSocket();
                 mcastSocket.setReuseAddress(true);
@@ -137,8 +136,6 @@ public class UdpSocket extends Thread {
             socket = mcastSocket;
         } else {
             if (reuseAddressAllowed) {
-//                socket = nullSocketRequired
-//                        ? new MulticastSocket(null) : new MulticastSocket();
                 socket = nullSocketRequired
                         ? new DatagramSocket(null) : new DatagramSocket();
                 socket.setReuseAddress(true);
@@ -241,7 +238,7 @@ public class UdpSocket extends Thread {
                     socket.disconnect();
                 }
             } catch (IOException e) {
-//                handler.onError(this, e);
+//                e.printStackTrace();
             }
         }
         socket.close();
