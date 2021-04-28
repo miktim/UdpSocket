@@ -28,8 +28,17 @@ public class UdpSocket extends Thread {
         void onClose(UdpSocket s); // called before closing datagram socket
     }
 
-    public static boolean tryReuseAddress = false;
+    public static boolean reuseAddressAllowed = false;
     public static boolean nullSocketRequired = true; // Android - false; Linux,Windows - true 
+
+    public static void allowReuseAddress(boolean nullRquired) {
+        nullSocketRequired = nullRquired;
+        reuseAddressAllowed = true;
+    }
+
+    public static void prohibitReuseAddress() {
+        reuseAddressAllowed = false;
+    }
 
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
@@ -106,7 +115,7 @@ public class UdpSocket extends Thread {
                 throw new SocketException("Not multicast");
             }
             MulticastSocket mcastSocket;
-            if (tryReuseAddress) {
+            if (reuseAddressAllowed) {
 // https://stackoverflow.com/questions/10071107/rebinding-a-port-to-datagram-socket-on-a-difftent-ip
 // I'm failed to achieve stable work on different operating systems
                 mcastSocket = nullSocketRequired
@@ -117,7 +126,7 @@ public class UdpSocket extends Thread {
                 mcastSocket = new MulticastSocket(socketAddr);
             }
 //            if (bindAddr == null) {
-                mcastSocket.joinGroup(inetAddress);
+            mcastSocket.joinGroup(inetAddress);
 //            } else {
 //                mcastSocket.joinGroup(
 //                        getGroup(),
@@ -127,7 +136,9 @@ public class UdpSocket extends Thread {
             mcastSocket.setTimeToLive(1);
             socket = mcastSocket;
         } else {
-            if (tryReuseAddress) {
+            if (reuseAddressAllowed) {
+//                socket = nullSocketRequired
+//                        ? new MulticastSocket(null) : new MulticastSocket();
                 socket = nullSocketRequired
                         ? new DatagramSocket(null) : new DatagramSocket();
                 socket.setReuseAddress(true);
@@ -221,7 +232,7 @@ public class UdpSocket extends Thread {
 //                    NetworkInterface netIf
 //                            = ((MulticastSocket) socket).getNetworkInterface();
 //                    if (netIf == null) {
-                        ((MulticastSocket) socket).leaveGroup(inetAddress);
+                    ((MulticastSocket) socket).leaveGroup(inetAddress);
 //                    } else {
 //                        ((MulticastSocket) socket).leaveGroup(getGroup(), netIf);
 //                    }
