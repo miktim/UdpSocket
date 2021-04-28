@@ -3,8 +3,12 @@
   
   Release notes:
     - don't forget to enable the required udp port in your firewall;
+    - created datagram sockets bind to port and specified bind address;
+    - only ipv4 addresses ending in .255 are considered broadcast.
+      (of course, the subnet mask may be different from /24);
     - multicast sockets are created with loopback disabled and one hop;
-    - DO NOT disable socket timeout.
+    - datagram sockets connect to addresses other than multicast and broadcast;
+    - DO NOT disable datagram socket timeout.
 
   Overview:
 
@@ -22,12 +26,12 @@
       boolean isOpen(); 
       boolean isReceiving();
       boolean isMulticast();
-      boolean isBroadcast(); // any ipv4 address ending in .255 (in fact, the subnet mask may be different from /24)
-      InetAddress getInetAddress(); //
+      boolean isBroadcast();
+      InetAddress getInetAddress();
       DatagramSocket getSocket();
 
     UdpSocket.Handler:
       void onStart(UdpSocket socket);
       void onPacket(UdpSocket socket, DatagramPacket packet);
       void onError(UdpSocket socket, Exception e);
-      void onClose(UdpSocket socket); // called BEFORE closing the socket
+      void onClose(UdpSocket socket); // called BEFORE closing the datagram socket
