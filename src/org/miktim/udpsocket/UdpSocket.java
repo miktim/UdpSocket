@@ -28,16 +28,16 @@ public class UdpSocket extends Thread {
         void onClose(UdpSocket s); // called before closing datagram socket
     }
 
-    public static boolean reuseAddressEnabled = false;
+    private static boolean reuseAddressEnabled = false;
 
-    public static void enableReuseAddress() {
-        reuseAddressEnabled = true;
+    public static void setReuseAddress(boolean on) {
+        reuseAddressEnabled = on;
     }
-
-    public static void disableReuseAddress() {
-        reuseAddressEnabled = false;
+    
+    public static boolean getReuseAddress() {
+        return reuseAddressEnabled;
     }
-
+    
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
     private InetAddress inetAddress; // broadcast/connect/group address

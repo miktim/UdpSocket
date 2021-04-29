@@ -17,8 +17,8 @@
       UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws IOException;
 
     Methods:
-      static void enableReuseAddress(); // disabled by default
-      static void disableReuseAddress();
+      static void setReuseAddress(boolean on); // disabled by default
+      static boolean getReuseAddress();
       
       void send(byte[] buf) throws IOException;
       void setBufferLength(int length); // set the buffer length of incoming datagrams

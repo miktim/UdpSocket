@@ -71,14 +71,12 @@ public class UdpSocketTest {
         log("UdpSocket test. " + osName);
         log("");
 
-        boolean reuseAddress = false;
-
-        UdpSocket.enableReuseAddress();
+        UdpSocket.setReuseAddress(true);
         try {
             UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);
             socket1.close();
         } catch (IOException e) {
-            UdpSocket.disableReuseAddress();
+            UdpSocket.setReuseAddress(false);
         }
         
 // broadcast        
@@ -103,13 +101,12 @@ public class UdpSocketTest {
         try {
             UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);
             socket1.close();
-            reuseAddress = true;
             log("Reuse address is enabled.\r\n");
         } catch (IOException e) {
-            UdpSocket.disableReuseAddress();
+            UdpSocket.setReuseAddress(false);
             log("Failed to reuse address!\r\n");
         }
-        if (!reuseAddress) {
+        if (!UdpSocket.getReuseAddress()) {
             socket0.close();
         }
 
@@ -126,7 +123,7 @@ public class UdpSocketTest {
             socket2.close();
         }
         Thread.sleep(RECEIVER_DELAY); // closing delay for receiving packets
-        if (!reuseAddress) {
+        if (!UdpSocket.getReuseAddress()) {
             socket2.close();
         }
 
