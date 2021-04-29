@@ -29,10 +29,8 @@ public class UdpSocket extends Thread {
     }
 
     public static boolean reuseAddressEnabled = false;
-    public static boolean nullSocketRequired = true; // Android - false; Linux,Windows - true 
 
-    public static void enableReuseAddress(boolean nullRquired) {
-        nullSocketRequired = nullRquired;
+    public static void enableReuseAddress() {
         reuseAddressEnabled = true;
     }
 
@@ -117,8 +115,7 @@ public class UdpSocket extends Thread {
             MulticastSocket mcastSocket;
             if (reuseAddressEnabled) {
 // https://stackoverflow.com/questions/10071107/rebinding-a-port-to-datagram-socket-on-a-difftent-ip
-                mcastSocket = nullSocketRequired
-                        ? new MulticastSocket(null) : new MulticastSocket();
+                mcastSocket = new MulticastSocket(null);
                 mcastSocket.setReuseAddress(true);
                 mcastSocket.bind(socketAddr); //
             } else {
@@ -136,8 +133,7 @@ public class UdpSocket extends Thread {
             socket = mcastSocket;
         } else {
             if (reuseAddressEnabled) {
-                socket = nullSocketRequired
-                        ? new DatagramSocket(null) : new DatagramSocket();
+                socket = new DatagramSocket(null);
                 socket.setReuseAddress(true);
                 socket.bind(socketAddr);
             } else {

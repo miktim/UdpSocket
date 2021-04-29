@@ -17,8 +17,7 @@
       UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws IOException;
 
     Methods:
-      static void enableReuseAddress(boolean nullSocketRequired); // disabled by default
-        // Note: nullSocketRequired must be true for Windows (Oracle Java) and Linux (Open Java), false - for Android (Dalvik)
+      static void enableReuseAddress(); // disabled by default
       static void disableReuseAddress();
       
       void send(byte[] buf) throws IOException;

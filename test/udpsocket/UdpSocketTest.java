@@ -72,8 +72,8 @@ public class UdpSocketTest {
         log("");
 
         boolean reuseAddress = false;
-// "true" for Windows, Linux (Android yet not tested)        
-        UdpSocket.enableReuseAddress(true);
+
+        UdpSocket.enableReuseAddress();
         try {
             UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);
             socket1.close();
