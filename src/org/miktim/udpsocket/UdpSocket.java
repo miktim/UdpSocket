@@ -28,7 +28,7 @@ public class UdpSocket extends Thread {
         void onClose(UdpSocket s); // called before closing datagram socket
     }
 
-    private static boolean reuseAddressEnabled = false;
+    private static boolean reuseAddressEnabled = true;
 
     public static void setReuseAddress(boolean on) {
         reuseAddressEnabled = on;

@@ -13,12 +13,12 @@
   Overview:
 
     Constructors:
-      UdpSocket(int port) throws IOException; // broadcast datagram socket
+      UdpSocket(int port) throws IOException; // broadcast datagram socket (255.255.255.255)
       UdpSocket(int port, InetAddress inetAddr) throws IOException;
       UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws IOException;
 
     Methods:
-      static void setReuseAddress(boolean on); // disabled by default
+      static void setReuseAddress(boolean on); // enabled by default
       static boolean getReuseAddress();
       
       void send(byte[] buf) throws IOException;
