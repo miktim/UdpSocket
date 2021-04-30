@@ -37,6 +37,17 @@ public class UdpSocket extends Thread {
     public static boolean getReuseAddress() {
         return reuseAddressEnabled;
     }
+
+    public static void send(byte[] buf, InetAddress addr, int port)
+            throws IOException {
+        if (addr.isMulticastAddress()) {
+            (new MulticastSocket())
+                    .send(new DatagramPacket(buf, buf.length, addr, port));
+        } else {
+            (new DatagramSocket())
+                    .send(new DatagramPacket(buf, buf.length, addr, port));
+        }
+    }
     
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
@@ -58,6 +69,14 @@ public class UdpSocket extends Thread {
     public UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr)
             throws Exception {
         createSocket(port, inetAddr, bindAddr);
+    }
+
+    public void send(byte[] buf) throws IOException {
+        socket.send(new DatagramPacket(buf, buf.length, inetAddress, port));
+    }
+
+    public void send(byte[] buf, InetAddress addr) throws IOException {
+        socket.send(new DatagramPacket(buf, buf.length, addr, port));
     }
 
     public boolean isMulticast() {
@@ -238,21 +257,6 @@ public class UdpSocket extends Thread {
             }
         }
         socket.close();
-    }
-
-    public void send(byte[] buf) throws IOException {
-        socket.send(new DatagramPacket(buf, buf.length, inetAddress, port));
-    }
-
-    public static void send(byte[] buf, InetAddress addr, int port)
-            throws IOException {
-        if (addr.isMulticastAddress()) {
-            (new MulticastSocket())
-                    .send(new DatagramPacket(buf, buf.length, addr, port));
-        } else {
-            (new DatagramSocket())
-                    .send(new DatagramPacket(buf, buf.length, addr, port));
-        }
     }
 
 }

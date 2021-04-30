@@ -1,5 +1,5 @@
 # UdpSocket, MIT (c) 2019,2021 miktim@mail.ru
-  UDP broadcast/unicast/multicast sender/receiver
+  Java SE 7+ UDP broadcast/unicast/multicast sender/receiver
   
   Release notes:
     - don't forget to open the required UDP port in your firewall;
@@ -12,7 +12,7 @@
 
   Overview:
 
-    Constructors:
+    Constructors (extends Thread):
       UdpSocket(int port) throws IOException; // broadcast datagram socket (255.255.255.255)
       UdpSocket(int port, InetAddress inetAddr) throws IOException;
       UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws IOException;
@@ -20,11 +20,13 @@
     Methods:
       static void setReuseAddress(boolean on); // enabled by default
       static boolean getReuseAddress();
+      static send(byte[] buf, InetAddress addr, int port); // send datagram
       
-      void send(byte[] buf) throws IOException;
-      void setBufLength(int length); // set the buf length of the received datagram packets
+      void send(byte[] buf) throws IOException; // send using socket
+      void send(byte[] buf, InetAddress addr) throws IOException; // send using socket
+      void setBufLength(int len); // set the buffer length of the receiving datagram packets
       int getBufLength();
-      void receive(UdpSocket.handler handler); // start receiving
+      void receive(UdpSocket.Handler handler); // start receiving
       void close(); // stop receiving, close datagram socket
       boolean isOpen(); 
       boolean isReceiving();
