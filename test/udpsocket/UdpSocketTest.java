@@ -84,8 +84,8 @@ public class UdpSocketTest {
         socket0.receive(handler);
         try {
             Thread.sleep(RECEIVER_DELAY); // delay for starting receiver
-//            UdpSocket.send(new byte[socket.getBufferLength() / 2], ia0, UDP_PORT);
-            socket0.send(new byte[socket0.getBufferLength()]);
+//            UdpSocket.send(new byte[socket.getBufLength() / 2], ia0, UDP_PORT);
+            socket0.send(new byte[socket0.getBufLength()]);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -116,8 +116,8 @@ public class UdpSocketTest {
         socket2.receive(handler);
         Thread.sleep(RECEIVER_DELAY); // delay for starting receivers
         try {
-//            UdpSocket.send(new byte[socket2.getBufferLength() / 3], ia1, UDP_PORT);
-            socket2.send(new byte[socket2.getBufferLength() * 2]);
+//            UdpSocket.send(new byte[socket2.getBufLength() / 3], ia1, UDP_PORT);
+            socket2.send(new byte[socket2.getBufLength() * 2]);
         } catch (IOException e) {
             e.printStackTrace();
             socket2.close();
@@ -150,8 +150,8 @@ public class UdpSocketTest {
         int count = 0;
         while (socket3.isReceiving()) {// && socket4.isReceiving()) {
 //            UdpSocket.send(new byte[15], ia3, UDP_PORT);
-            socket3.send(new byte[socket3.getBufferLength() / 2]); // multicast
-            socket4.send(new byte[socket4.getBufferLength()]); // multicast
+            socket3.send(new byte[socket3.getBufLength() / 2]); // multicast
+            socket4.send(new byte[socket4.getBufLength()]); // multicast
             if (socket0.isOpen()) {
                 socket0.send(new byte[15]); // broadcast
             }

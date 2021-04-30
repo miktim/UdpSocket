@@ -2,11 +2,12 @@
   UDP broadcast/unicast/multicast sender/receiver
   
   Release notes:
-    - don't forget to open the required udp port in your firewall;
-    - created datagram sockets bind to port and specified bind address;
-    - ipv4 addresses ending in .255 are considered broadcast;
+    - don't forget to open the required UDP port in your firewall;
+    - the socket type (datagram/multicast) is determined by the requested address (inetAddr);
+    - the created socket is bound to the port and specified bind address (bindAddr);
     - multicast sockets are created with loopback disabled and one hop;
-    - datagram sockets connect to addresses other than multicast and broadcast;
+    - the datagram socket connects to a non-broadcast address;
+    - only IPv4 addresses ending in .255 are considered broadcast;
     - DO NOT disable datagram socket timeout.
 
   Overview:
@@ -21,8 +22,8 @@
       static boolean getReuseAddress();
       
       void send(byte[] buf) throws IOException;
-      void setBufferLength(int length); // set the buffer length of incoming datagrams
-      int getBufferLength();
+      void setBufLength(int length); // set the buf length of the received datagram packets
+      int getBufLength();
       void receive(UdpSocket.handler handler); // start receiving
       void close(); // stop receiving, close datagram socket
       boolean isOpen(); 

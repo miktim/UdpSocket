@@ -41,7 +41,7 @@ public class UdpSocket extends Thread {
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
     private InetAddress inetAddress; // broadcast/connect/group address
-    private int bufferLength = 508; // 508 - IPv4 guaranteed receive packet size by any host 
+    private int bufLength = 508; // 508 - IPv4 guaranteed receive packet size by any host 
     // For any case: SO_RCVBUF size = 106496 (Linux x64)
     private Handler handler;
     private boolean isRunning = false;
@@ -74,15 +74,15 @@ public class UdpSocket extends Thread {
         return socket;
     }
 
-    public void setBufferLength(int length) throws IllegalArgumentException {
+    public void setBufLength(int length) throws IllegalArgumentException {
         if (length <= 0) {
             throw new IllegalArgumentException();
         }
-        bufferLength = length;
+        bufLength = length;
     }
 
-    public int getBufferLength() {
-        return bufferLength;
+    public int getBufLength() {
+        return bufLength;
     }
 
     public InetAddress getInetAddress() {
@@ -173,7 +173,7 @@ public class UdpSocket extends Thread {
         while (isRunning && !socket.isClosed()) {
             try {
                 DatagramPacket dp
-                        = new DatagramPacket(new byte[bufferLength], bufferLength);
+                        = new DatagramPacket(new byte[bufLength], bufLength);
                 socket.receive(dp);
                 handler.onPacket(this, dp);
             } catch (java.net.SocketTimeoutException e) {
