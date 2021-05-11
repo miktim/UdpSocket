@@ -7,7 +7,7 @@
     - the created socket is bound to the port and specified bind address (bindAddr);
     - multicast sockets are created with loopback disabled and one hop;
     - the datagram socket connects to a non-broadcast address;
-    - only IPv4 addresses ending in .255 are considered broadcast;
+    - only non-multicast IPv4 addresses ending in .255 are considered broadcast;
     - DO NOT disable datagram socket timeout.
 
   Overview:
@@ -24,6 +24,7 @@
       
       void send(byte[] buf) throws IOException; // send using socket
       void send(byte[] buf, InetAddress addr) throws IOException; // send using socket
+      void send(byte[] buf, int port, InetAddress addr) throws IOException; // send using socket
       void setBufLength(int len); // set the buffer length of the receiving datagram packets
       int getBufLength();
       void receive(UdpSocket.Handler handler); // start receiving

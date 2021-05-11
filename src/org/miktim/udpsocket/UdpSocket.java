@@ -78,6 +78,10 @@ public class UdpSocket extends Thread {
     public void send(byte[] buf, InetAddress addr) throws IOException {
         socket.send(new DatagramPacket(buf, buf.length, addr, port));
     }
+    
+    public void send(byte[] buf, int port, InetAddress addr) throws IOException {
+        socket.send(new DatagramPacket(buf, buf.length, addr, port));
+    }
 
     public boolean isMulticast() {
         return inetAddress.isMulticastAddress();
@@ -85,6 +89,7 @@ public class UdpSocket extends Thread {
 
 // any ipv4 address ending in .255 (in fact, the subnet mask may be different from /24)
     public boolean isBroadcast() {
+        if(inetAddress.isMulticastAddress()) return false;
         byte[] b = inetAddress.getAddress();
         return b.length == 4 && b[3] == (byte) 255;
     }
