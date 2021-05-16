@@ -40,13 +40,13 @@ public class UdpSocket extends Thread {
 
     public static void send(byte[] buf, InetAddress addr, int port)
             throws IOException {
-        if (addr.isMulticastAddress()) {
-            (new MulticastSocket())
-                    .send(new DatagramPacket(buf, buf.length, addr, port));
-        } else {
+//        if (addr.isMulticastAddress()) {
+//            (new MulticastSocket())
+//                    .send(new DatagramPacket(buf, buf.length, addr, port));
+//        } else {
             (new DatagramSocket())
                     .send(new DatagramPacket(buf, buf.length, addr, port));
-        }
+//        }
     }
     
     private DatagramSocket socket;
@@ -94,7 +94,7 @@ public class UdpSocket extends Thread {
         return b.length == 4 && b[3] == (byte) 255;
     }
 
-    public DatagramSocket getSocket() {
+    public DatagramSocket getDatagramSocket() {
         return socket;
     }
 
@@ -165,7 +165,7 @@ public class UdpSocket extends Thread {
             }
             if (isBroadcast()) {
                 socket.setBroadcast(true);
-            } else {
+            } else if (!inetAddress.isAnyLocalAddress()){
                 socket.connect(new InetSocketAddress(inetAddress, port));
             }
         }

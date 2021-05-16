@@ -6,7 +6,7 @@
     - the socket type (datagram/multicast) is determined by the requested address (inetAddr);
     - the created socket is bound to the port and specified bind address (bindAddr);
     - multicast sockets are created with loopback disabled and one hop;
-    - the datagram socket connects to a non-broadcast address;
+    - the datagram socket connects to a non-broadcast, not anyLocal address;
     - only non-multicast IPv4 addresses ending in .255 are considered broadcast;
     - DO NOT disable datagram socket timeout.
 
@@ -20,21 +20,23 @@
     Methods:
       static void setReuseAddress(boolean on); // enabled by default
       static boolean getReuseAddress();
-      static send(byte[] buf, InetAddress addr, int port); // send datagram
+      static void send(byte[] buf, InetAddress addr, int port); // send datagram
       
       void send(byte[] buf) throws IOException; // send using socket
       void send(byte[] buf, InetAddress addr) throws IOException; // send using socket
       void send(byte[] buf, int port, InetAddress addr) throws IOException; // send using socket
+
       void setBufLength(int len); // set the buffer length of the receiving datagram packets
       int getBufLength();
       void receive(UdpSocket.Handler handler); // start receiving
+
       void close(); // stop receiving, close datagram socket
       boolean isOpen(); 
       boolean isReceiving();
       boolean isMulticast();
       boolean isBroadcast();
       InetAddress getInetAddress(); // returns inetAddr parameter
-      DatagramSocket getSocket();
+      DatagramSocket getDatagramSocket();
 
     UdpSocket.Handler:
       void onStart(UdpSocket socket);

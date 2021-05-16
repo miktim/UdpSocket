@@ -17,7 +17,7 @@ public class UdpSocketTest {
 // delay for starting the receivers and completely receiving packets before closing
     static final int RECEIVER_DELAY = 100;
 // timeouted sockets closure
-    static final int RECEIVER_TIMEOUT = 30000;
+    static final int CLOSE_TIMEOUT = 30000;
     static final String REMOTE_ADDRESS = "192.168.1.107";
     static final String MULTICAST_ADDRESS = "224.0.0.1"; // all systems in this subnet
 
@@ -145,7 +145,7 @@ public class UdpSocketTest {
                 socket2.close();
                 timer.cancel();
             }
-        }, RECEIVER_TIMEOUT);
+        }, CLOSE_TIMEOUT);
 
         int count = 0;
         while (socket3.isReceiving()) {// && socket4.isReceiving()) {
@@ -158,11 +158,11 @@ public class UdpSocketTest {
             if (socket2.isOpen()) {
                 socket2.send(new byte[30]); // unicast, connected
             }
-            Thread.sleep(RECEIVER_TIMEOUT / 10); // delay sending
+            Thread.sleep(CLOSE_TIMEOUT / 10); // delay sending
             if (++count == 5) {
                 log("\r\nMulticast sockets loopback enabled.\r\n");
-                ((MulticastSocket) (socket3.getSocket())).setLoopbackMode(false);
-                ((MulticastSocket) (socket4.getSocket())).setLoopbackMode(false);
+                ((MulticastSocket) (socket3.getDatagramSocket())).setLoopbackMode(false);
+                ((MulticastSocket) (socket4.getDatagramSocket())).setLoopbackMode(false);
             }
         }
     }
