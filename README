@@ -10,12 +10,12 @@ Release notes:
   - only non-multicast IPv4 addresses ending in .255 are considered broadcast;
   - DO NOT disable datagram socket timeout.
 
-package org.miktim.udpsocket
+package org.miktim.udpsocket;
 
 Overview:
 
-  Class UdpSocket:
-    Constructors (extends Thread):
+  Class UdpSocket extends Thread;
+    Constructors:
       UdpSocket(int port) throws IOException; // broadcast datagram socket (255.255.255.255)
       UdpSocket(int port, InetAddress inetAddr) throws IOException;
       UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws IOException;
