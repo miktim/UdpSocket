@@ -40,13 +40,8 @@ public class UdpSocket extends Thread {
 
     public static void send(byte[] buf, InetAddress addr, int port)
             throws IOException {
-//        if (addr.isMulticastAddress()) {
-//            (new MulticastSocket())
-//                    .send(new DatagramPacket(buf, buf.length, addr, port));
-//        } else {
             (new DatagramSocket())
                     .send(new DatagramPacket(buf, buf.length, addr, port));
-//        }
     }
     
     private DatagramSocket socket;
@@ -145,13 +140,7 @@ public class UdpSocket extends Thread {
             } else {
                 mcastSocket = new MulticastSocket(socketAddr);
             }
-//            if (bindAddr == null) {
             mcastSocket.joinGroup(inetAddress);
-//            } else {
-//                mcastSocket.joinGroup(
-//                        getGroup(),
-//                        NetworkInterface.getByInetAddress(bindAddr));
-//            }
             mcastSocket.setLoopbackMode(true); // disable loopback
             mcastSocket.setTimeToLive(1);
             socket = mcastSocket;
@@ -172,11 +161,6 @@ public class UdpSocket extends Thread {
         socket.setSoTimeout(500); // !!! DO NOT disable
     }
 
-// https://stackoverflow.com/questions/4519556/how-to-determine-if-my-app-is-running-on-android
-//    private boolean nullSocketRequired() {
-//        return System.getProperty("os.name").startsWith("Linux");
-////        return !System.getProperty("java.runtime.name").equals("Android Runtime");
-//    }
     public void receive(UdpSocket.Handler handler) {
         this.handler = handler;
         this.start();
@@ -246,13 +230,7 @@ public class UdpSocket extends Thread {
         if (!socket.isClosed()) {
             try {
                 if (isMulticast()) {
-//                    NetworkInterface netIf
-//                            = ((MulticastSocket) socket).getNetworkInterface();
-//                    if (netIf == null) {
                     ((MulticastSocket) socket).leaveGroup(inetAddress);
-//                    } else {
-//                        ((MulticastSocket) socket).leaveGroup(getGroup(), netIf);
-//                    }
                 }
                 if (socket.isConnected()) {
                     socket.disconnect();
