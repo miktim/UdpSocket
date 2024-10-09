@@ -13,7 +13,6 @@ import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 
 public class UdpSocket extends Thread {
 
@@ -47,22 +46,22 @@ public class UdpSocket extends Thread {
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
     private InetAddress inetAddress; // broadcast/connect/group address
-    private int bufLength = 508; // 508 - IPv4 guaranteed receive packet size by any host 
+    private int bufLength = 508; 
+    // 508 - IPv4 guaranteed receive packet size by any host 
     // For any case: SO_RCVBUF size = 106496 (Linux x64)
     private Handler handler;
     private boolean isRunning = false;
 
-    public UdpSocket(int port) throws Exception {
+    public UdpSocket(int port) throws IOException {
         createSocket(port, null, null);
     }
 
-    public UdpSocket(int port, InetAddress inetAddr)
-            throws Exception {
+    public UdpSocket(int port, InetAddress inetAddr) throws IOException {
         createSocket(port, inetAddr, null);
     }
 
     public UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr)
-            throws Exception {
+            throws IOException {
         createSocket(port, inetAddr, bindAddr);
     }
 
@@ -118,7 +117,8 @@ public class UdpSocket extends Thread {
         return !socket.isClosed();
     }
 
-    final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws UnknownHostException, IOException {
+    final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr) 
+            throws IOException {
         this.port = port;
         inetAddress = inetAddr != null
                 ? inetAddr : InetAddress.getByName("255.255.255.255");

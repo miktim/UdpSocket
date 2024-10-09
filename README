@@ -1,4 +1,4 @@
-# UdpSocket, MIT (c) 2019,2021 miktim@mail.ru
+UdpSocket, MIT (c) 2019,2021 miktim@mail.ru
 Java SE 7+ UDP broadcast/unicast/multicast sender/receiver
 
 Release notes:
@@ -23,7 +23,7 @@ Overview:
     Methods:
       static void setReuseAddress(boolean on); // enabled by default
       static boolean getReuseAddress();
-      static void send(byte[] buf, InetAddress addr, int port); // send datagram
+      static void send(byte[] buf, InetAddress addr, int port) throws IOException; // send datagram
       
       void send(byte[] buf) throws IOException; // send using socket
       void send(byte[] buf, InetAddress addr) throws IOException; // send using socket
