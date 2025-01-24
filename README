@@ -17,7 +17,8 @@ package org.miktim.udpsocket;
 
 Overview:
 
-  Class UdpSocket extends Thread;
+  Class UdpSocket extends Thread;  
+  
     Constructors:
       UdpSocket(int port) throws IOException; 
         - broadcast datagram socket (255.255.255.255)
