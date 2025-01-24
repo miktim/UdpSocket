@@ -14,12 +14,13 @@ import org.miktim.udpsocket.UdpSocket;
 public class UdpSocketTest {
 
     static final int UDP_PORT = 9099; // IANA registry: unused
-// delay for starting the receivers and completely receiving packets before closing
-    static final int RECEIVER_DELAY = 100;
-// timeouted sockets closure
-    static final int CLOSE_TIMEOUT = 30000;
     static final String REMOTE_ADDRESS = "192.168.1.107";
     static final String MULTICAST_ADDRESS = "224.0.0.1"; // all systems in this subnet
+// delay for starting the receivers and completely receiving packets before closing
+    static final int RECEIVER_DELAY = 100;
+    static final int SENDER_DELAY = 300; // send datagram delay
+// timeouted sockets closure
+    static final int CLOSE_TIMEOUT = 30000;
 
     static boolean udpPortAccessible = false;
 
@@ -47,7 +48,7 @@ public class UdpSocketTest {
 
             @Override
             public void onPacket(UdpSocket socket, DatagramPacket packet) {
-                if (socket.isBroadcast()) {
+                if (UdpSocket.isBroadcast(socket.getInetAddress())) {
                     udpPortAccessible = true;
                 }
                 log(socketId(socket) + " onPacket: " + packet.getLength()
@@ -62,7 +63,8 @@ public class UdpSocketTest {
         };
 
         InetAddress iab = InetAddress.getByName("255.255.255.255");
-        InetAddress iah = InetAddress.getLocalHost();
+//        InetAddress iah = InetAddress.getLocalHost();
+        InetAddress iah = InetAddress.getByName("localhost");
         InetAddress ial = InetAddress.getByName("localhost");
         InetAddress iam = InetAddress.getByName(MULTICAST_ADDRESS);
         InetAddress iar = InetAddress.getByName(REMOTE_ADDRESS);
@@ -158,7 +160,7 @@ public class UdpSocketTest {
             if (socket2.isOpen()) {
                 socket2.send(new byte[30]); // unicast, connected
             }
-            Thread.sleep(CLOSE_TIMEOUT / 10); // delay sending
+            Thread.sleep(SENDER_DELAY); // delay sending
             if (++count == 5) {
                 log("\r\nMulticast sockets loopback enabled.\r\n");
                 ((MulticastSocket) (socket3.getDatagramSocket())).setLoopbackMode(false);

@@ -1,12 +1,15 @@
-UdpSocket, MIT (c) 2019,2021 miktim@mail.ru
-Java SE 7+ UDP broadcast/unicast/multicast sender/receiver
+UdpSocket, MIT (c) 2019-2025 miktim@mail.ru  
+
+Java SE 7+ UDP broadcast/unicast/multicast sender/receiver  
+
+The UDP protocol does not guarantee datagram delivery, ordering, or duplicate protection.  
+The maximum safe UDP payload size is ~508 bytes.  
 
 Release notes:
   - don't forget to open the required UDP port in your firewall;
   - the socket type (datagram/multicast) is determined by the requested address (inetAddr);
-  - the created socket is bound to the port and specified bind address (bindAddr);
+  - the created socket is bound to the port and specified bind address (localAddr);
   - multicast sockets are created with loopback disabled and one hop;
-  - the datagram socket connects to a non-broadcast, not anyLocal address;
   - only non-multicast IPv4 addresses ending in .255 are considered broadcast;
   - DO NOT disable datagram socket timeout.
 
@@ -16,33 +19,51 @@ Overview:
 
   Class UdpSocket extends Thread;
     Constructors:
-      UdpSocket(int port) throws IOException; // broadcast datagram socket (255.255.255.255)
+      UdpSocket(int port) throws IOException; 
+        - broadcast datagram socket (255.255.255.255)
       UdpSocket(int port, InetAddress inetAddr) throws IOException;
-      UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr) throws IOException;
+      UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
+
+    Constants:
+      static final String version = "2.0.0";
 
     Methods:
-      static void setReuseAddress(boolean on); // enabled by default
+      static void setReuseAddress(boolean on);
       static boolean getReuseAddress();
-      static void send(byte[] buf, InetAddress addr, int port) throws IOException; // send datagram
+        - enabled by default
+     
+      static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException;
+        - sends datagram 
+      static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
+        - sends a datagram through the specified interface (localAddr)
       
-      void send(byte[] buf) throws IOException; // send using socket
-      void send(byte[] buf, InetAddress addr) throws IOException; // send using socket
-      void send(byte[] buf, int port, InetAddress addr) throws IOException; // send using socket
+      void send(byte[] buf) throws IOException;
+        - sends datagram using socket info
+      void send(byte[] buf, int len) throws IOException;
+        - sends datagram using socket info
 
-      void setBufLength(int len); // set the buffer length of the receiving datagram packets
+      void setBufLength(int len); 
+        - sets the buffer length of the receiving datagrams
       int getBufLength();
-      void receive(UdpSocket.Handler handler); // start receiving datagrams
+        - default: 1024 bytes
 
-      void close(); // stop receiving, close datagram socket
+      void receive(UdpSocket.Handler handler); 
+        - start receiving datagrams
+
+      void close(); 
+        - stop receiving, close datagram socket
+
       boolean isOpen(); 
       boolean isReceiving();
       boolean isMulticast();
       boolean isBroadcast();
-      InetAddress getInetAddress(); // returns inetAddr parameter
+      InetAddress getInetAddress();
+        - returns inetAddr parameter
       DatagramSocket getDatagramSocket();
 
     Interface UdpSocket.Handler:
       void onStart(UdpSocket socket);
       void onPacket(UdpSocket socket, DatagramPacket packet);
       void onError(UdpSocket socket, Exception e);
-      void onClose(UdpSocket socket); // called BEFORE closing the datagram socket
+      void onClose(UdpSocket socket); 
+        - called BEFORE closing the datagram socket

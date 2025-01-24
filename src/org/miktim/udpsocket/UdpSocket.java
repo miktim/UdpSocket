@@ -1,5 +1,5 @@
 /*
- * UdpSocket, MIT (c) 2019-2021 miktim@mail.ru
+ * UdpSocket, MIT (c) 2019-2025 miktim@mail.ru
  * UDP broadcast/unicast/multicast sender/receiver
  */
 package org.miktim.udpsocket;
@@ -16,6 +16,8 @@ import java.net.SocketException;
 
 public class UdpSocket extends Thread {
 
+    public static final String version = "2.0.0";
+    
     public interface Handler {
 
         void onStart(UdpSocket s);
@@ -32,26 +34,36 @@ public class UdpSocket extends Thread {
     public static void setReuseAddress(boolean on) {
         reuseAddressEnabled = on;
     }
-    
+
     public static boolean getReuseAddress() {
         return reuseAddressEnabled;
     }
 
-    public static void send(byte[] buf, InetAddress addr, int port)
-            throws IOException {
-            (new DatagramSocket())
-                    .send(new DatagramPacket(buf, buf.length, addr, port));
+    public static void send(byte[] buf, int len, int port, InetAddress addr) throws IOException {
+        send(buf, len, port, addr, null);
     }
-    
+
+    public static void send(byte[] buf, int len, int port, InetAddress addr, InetAddress localAddr)
+            throws IOException {
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.setBroadcast(UdpSocket.isBroadcast(addr));
+            if (localAddr != null) {
+                socket.bind(new InetSocketAddress(localAddr, 0));
+            }
+            socket.send(new DatagramPacket(buf, len, addr, port));
+        }
+    }
+
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
     private InetAddress inetAddress; // broadcast/connect/group address
-    private int bufLength = 508; 
-    // 508 - IPv4 guaranteed receive packet size by any host 
+    private int bufLength = 1024;
+    // 508 bytes is guaranteed receive packet size by any IPv4 host 
     // For any case: SO_RCVBUF size = 106496 (Linux x64)
     private Handler handler;
     private boolean isRunning = false;
-
+    private static final int SOCKET_SO_TIMEOUT = 300;
+    
     public UdpSocket(int port) throws IOException {
         createSocket(port, null, null);
     }
@@ -60,21 +72,17 @@ public class UdpSocket extends Thread {
         createSocket(port, inetAddr, null);
     }
 
-    public UdpSocket(int port, InetAddress inetAddr, InetAddress bindAddr)
+    public UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr)
             throws IOException {
-        createSocket(port, inetAddr, bindAddr);
+        createSocket(port, inetAddr, localAddr);
     }
 
     public void send(byte[] buf) throws IOException {
         socket.send(new DatagramPacket(buf, buf.length, inetAddress, port));
     }
 
-    public void send(byte[] buf, InetAddress addr) throws IOException {
-        socket.send(new DatagramPacket(buf, buf.length, addr, port));
-    }
-    
-    public void send(byte[] buf, int port, InetAddress addr) throws IOException {
-        socket.send(new DatagramPacket(buf, buf.length, addr, port));
+    public void send(byte[] buf, int len) throws IOException {
+        socket.send(new DatagramPacket(buf, len, inetAddress, port));
     }
 
     public boolean isMulticast() {
@@ -82,10 +90,16 @@ public class UdpSocket extends Thread {
     }
 
 // any ipv4 address ending in .255 (in fact, the subnet mask may be different from /24)
-    public boolean isBroadcast() {
-        if(inetAddress.isMulticastAddress()) return false;
-        byte[] b = inetAddress.getAddress();
+    public static boolean isBroadcast(InetAddress addr) {
+        if (addr.isMulticastAddress()) {
+            return false;
+        }
+        byte[] b = addr.getAddress();
         return b.length == 4 && b[3] == (byte) 255;
+    }
+
+    public boolean isBroadcast() {
+        return isBroadcast(inetAddress);
     }
 
     public DatagramSocket getDatagramSocket() {
@@ -117,7 +131,7 @@ public class UdpSocket extends Thread {
         return !socket.isClosed();
     }
 
-    final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr) 
+    final void createSocket(int port, InetAddress inetAddr, InetAddress bindAddr)
             throws IOException {
         this.port = port;
         inetAddress = inetAddr != null
@@ -128,9 +142,9 @@ public class UdpSocket extends Thread {
         SocketAddress socketAddr = new InetSocketAddress(bindAddr, port);
 
         if (inetAddress.isMulticastAddress()) {
-            if (bindAddr != null && !NetworkInterface.getByInetAddress(bindAddr).supportsMulticast()) {
-                throw new SocketException("Not multicast");
-            }
+//            if (bindAddr != null && !NetworkInterface.getByInetAddress(bindAddr).supportsMulticast()) {
+//                throw new SocketException("Interface not supports multicast");
+//            }
             MulticastSocket mcastSocket;
             if (reuseAddressEnabled) {
 // https://stackoverflow.com/questions/10071107/rebinding-a-port-to-datagram-socket-on-a-difftent-ip
@@ -152,13 +166,13 @@ public class UdpSocket extends Thread {
             } else {
                 socket = new DatagramSocket(socketAddr);
             }
-            if (isBroadcast()) {
+            if (isBroadcast(inetAddress)) {
                 socket.setBroadcast(true);
-            } else if (!inetAddress.isAnyLocalAddress()){
-                socket.connect(new InetSocketAddress(inetAddress, port));
+//            } else if (!inetAddress.isAnyLocalAddress()) { //! isMulticast()
+//                socket.connect(new InetSocketAddress(inetAddress, port));
             }
         }
-        socket.setSoTimeout(500); // !!! DO NOT disable
+        socket.setSoTimeout(SOCKET_SO_TIMEOUT); // !!! DO NOT disable
     }
 
     public void receive(UdpSocket.Handler handler) {
@@ -214,7 +228,7 @@ public class UdpSocket extends Thread {
         String connectedTo = socket.isConnected()
                 ? " connected to " + socket.getRemoteSocketAddress()
                 : "";
-        String broadcast = isBroadcast() ? " " + inetAddress + ":" + port
+        String broadcast = isBroadcast(inetAddress) ? " " + inetAddress + ":" + port
                 : "";
         return serverType + broadcast + mcGroup + connectedTo + boundTo;
     }
