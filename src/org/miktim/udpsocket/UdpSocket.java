@@ -16,7 +16,7 @@ import java.net.SocketException;
 
 public class UdpSocket extends Thread {
 
-    public static final String version = "2.0.0";
+    public static final String VERSION = "2.0.0";
     
     public interface Handler {
 
@@ -168,7 +168,7 @@ public class UdpSocket extends Thread {
             }
             if (isBroadcast(inetAddress)) {
                 socket.setBroadcast(true);
-//            } else if (!inetAddress.isAnyLocalAddress()) { //! isMulticast()
+//            } else if (!inetAddress.isAnyLocalAddress()) { 
 //                socket.connect(new InetSocketAddress(inetAddress, port));
             }
         }

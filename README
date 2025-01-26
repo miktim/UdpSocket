@@ -26,7 +26,7 @@ Overview:
       UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
 
     Constants:
-      static final String version = "2.0.0";
+      static final String VERSION = "2.0.0";
 
     Methods:
       static void setReuseAddress(boolean on);
@@ -44,7 +44,7 @@ Overview:
         - sends datagram using socket info
 
       void setBufLength(int len); 
-        - sets the buffer length of the receiving datagrams
+        - sets the buffer length for the payload of receiving datagrams
       int getBufLength();
         - default: 1024 bytes
 
