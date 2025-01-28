@@ -1,3 +1,7 @@
+2.1.0
+  - static method isAccessible added;
+  - joining to the multicast group has moved from the constructor to the receiver;
+  - fixed test
 2.0.0
   - removed implicit socket connection to remote address;
   - fixed test

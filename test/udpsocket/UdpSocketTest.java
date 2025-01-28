@@ -15,14 +15,14 @@ public class UdpSocketTest {
 
     static final int UDP_PORT = 9099; // IANA registry: unused
     static final String REMOTE_ADDRESS = "192.168.1.107";
-    static final String MULTICAST_ADDRESS = "224.0.0.1"; // all systems in this subnet
+    static final String MULTICAST_ADDRESS = "224.0.1.191"; // unused global
 // delay for starting the receivers and completely receiving packets before closing
     static final int RECEIVER_DELAY = 100;
     static final int SENDER_DELAY = 300; // send datagram delay
 // timeouted sockets closure
-    static final int CLOSE_TIMEOUT = 30000;
+    static final int CLOSE_TIMEOUT = 10000;
 
-    static boolean udpPortAccessible = false;
+ //   static boolean udpPortAccessible = false;
 
     static void log(String s) {
         System.out.println(s);
@@ -48,9 +48,9 @@ public class UdpSocketTest {
 
             @Override
             public void onPacket(UdpSocket socket, DatagramPacket packet) {
-                if (UdpSocket.isBroadcast(socket.getInetAddress())) {
-                    udpPortAccessible = true;
-                }
+//                if (UdpSocket.isBroadcast(socket.getInetAddress())) {
+//                    udpPortAccessible = true;
+//                }
                 log(socketId(socket) + " onPacket: " + packet.getLength()
                         + packet.getAddress() + ":" + packet.getPort());
             }
@@ -71,7 +71,7 @@ public class UdpSocketTest {
 
         String osName = System.getProperty("os.name");
         log("UdpSocket test. " + osName);
-        log("");
+//        log("");
 
         UdpSocket.setReuseAddress(true);
         try {
@@ -81,24 +81,25 @@ public class UdpSocketTest {
             UdpSocket.setReuseAddress(false);
         }
         
-// broadcast        
-        final UdpSocket socket0 = new UdpSocket(UDP_PORT);
-        socket0.receive(handler);
-        try {
-            Thread.sleep(RECEIVER_DELAY); // delay for starting receiver
-//            UdpSocket.send(new byte[socket.getBufLength() / 2], ia0, UDP_PORT);
-            socket0.send(new byte[socket0.getBufLength()]);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        Thread.sleep(RECEIVER_DELAY); // closing delay for receiving packets
-
-        if (!udpPortAccessible) {
+        if (!UdpSocket.isAccessible(UDP_PORT, null)) {
             log("\r\nUDP port " + UDP_PORT + " is not accessible! Exit.");
             System.exit(1);
         } else {
             log("\r\nUDP port " + UDP_PORT + " is accessible.");
         }
+// broadcast        
+        final UdpSocket socket0 = new UdpSocket(UDP_PORT);
+        socket0.receive(handler);
+//        try {
+//            Thread.sleep(RECEIVER_DELAY); // delay for starting receiver
+//            UdpSocket.send(new byte[socket.getBufLength() / 2], ia0, UDP_PORT);
+//            socket0.send(new byte[socket0.getBufLength()]);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        Thread.sleep(RECEIVER_DELAY); // closing delay for receiving packets
+
+//        if (!udpPortAccessible) {
 // check reuse address 
         try {
             UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);

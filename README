@@ -10,7 +10,8 @@ Release notes:
   - the socket type (datagram/multicast) is determined by the requested address (inetAddr);
   - the created socket is bound to the port and specified bind address (localAddr);
   - multicast sockets are created with loopback disabled and one hop;
-  - only non-multicast IPv4 addresses ending in .255 are considered broadcast;
+  - the receiver joins the multicast group;
+  - non-multicast IPv4 addresses ending in .255 are considered broadcast;
   - DO NOT disable datagram socket timeout.
 
 package org.miktim.udpsocket;
@@ -26,13 +27,14 @@ Overview:
       UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
 
     Constants:
-      static final String VERSION = "2.0.0";
+      static final String VERSION = "2.1.0";
 
     Methods:
       static void setReuseAddress(boolean on);
       static boolean getReuseAddress();
         - enabled by default
-     
+      static boolean isAccessible(int port, InetAddress localAddr) throws IOException;
+        - checks whether the port is accessible on the specified interface (can be null).
       static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException;
         - sends datagram 
       static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
@@ -44,12 +46,12 @@ Overview:
         - sends datagram using socket info
 
       void setBufLength(int len); 
-        - sets the buffer length for the payload of receiving datagrams
+        - sets the buffer length of the receiving datagram
       int getBufLength();
         - default: 1024 bytes
 
-      void receive(UdpSocket.Handler handler); 
-        - start receiving datagrams
+      void receive(UdpSocket.Handler handler) throws IOException; 
+        - joins multicast group, starts receiving datagrams
 
       void close(); 
         - stop receiving, close datagram socket
@@ -68,3 +70,10 @@ Overview:
       void onError(UdpSocket socket, Exception e);
       void onClose(UdpSocket socket); 
         - called BEFORE closing the datagram socket
+
+Helpful Links:  
+  - using multicast: 
+      https://docs.oracle.com/cd/E23824_01/html/821-1602/sockets-137.html
+  - IANA address and port registry:
+      https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
+      https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml

@@ -16,8 +16,8 @@ import java.net.SocketException;
 
 public class UdpSocket extends Thread {
 
-    public static final String VERSION = "2.0.0";
-    
+    public static final String VERSION = "2.1.0";
+
     public interface Handler {
 
         void onStart(UdpSocket s);
@@ -30,6 +30,23 @@ public class UdpSocket extends Thread {
     }
 
     private static boolean reuseAddressEnabled = true;
+
+    public static boolean isAccessible(int port, InetAddress localAddr) throws IOException {
+        DatagramSocket socket = new DatagramSocket(null);
+        socket.setReuseAddress(true);
+        socket.bind(new InetSocketAddress(localAddr, port));
+        DatagramPacket packet = new DatagramPacket(new byte[1], 1, InetAddress.getByName("255.255.255.255"), port);
+        socket.send(packet);
+        socket.setSoTimeout(SOCKET_SO_TIMEOUT);
+        try {
+            socket.receive(packet);
+        } catch (IOException e) {
+            socket.close();
+            return false;
+        }
+        socket.close();
+        return true;
+    }
 
     public static void setReuseAddress(boolean on) {
         reuseAddressEnabled = on;
@@ -62,8 +79,8 @@ public class UdpSocket extends Thread {
     // For any case: SO_RCVBUF size = 106496 (Linux x64)
     private Handler handler;
     private boolean isRunning = false;
-    private static final int SOCKET_SO_TIMEOUT = 300;
-    
+    private static final int SOCKET_SO_TIMEOUT = 1000;
+
     public UdpSocket(int port) throws IOException {
         createSocket(port, null, null);
     }
@@ -154,7 +171,7 @@ public class UdpSocket extends Thread {
             } else {
                 mcastSocket = new MulticastSocket(socketAddr);
             }
-            mcastSocket.joinGroup(inetAddress);
+//            mcastSocket.joinGroup(inetAddress);
             mcastSocket.setLoopbackMode(true); // disable loopback
             mcastSocket.setTimeToLive(1);
             socket = mcastSocket;
@@ -175,8 +192,11 @@ public class UdpSocket extends Thread {
         socket.setSoTimeout(SOCKET_SO_TIMEOUT); // !!! DO NOT disable
     }
 
-    public void receive(UdpSocket.Handler handler) {
+    public void receive(UdpSocket.Handler handler) throws IOException {
         this.handler = handler;
+        if (isMulticast()) {
+            ((MulticastSocket) socket).joinGroup(inetAddress);
+        }
         this.start();
     }
 
@@ -212,6 +232,30 @@ public class UdpSocket extends Thread {
         handler.onClose(this);
     }
 
+    public void close() {
+        if (isRunning) {
+            isRunning = false;
+            try {
+                socket.setSoTimeout(5);
+                this.join();
+            } catch (InterruptedException | SocketException e) {
+            }
+        }
+        if (!socket.isClosed()) {
+            try {
+                if (isMulticast()) {
+                    ((MulticastSocket) socket).leaveGroup(inetAddress);
+                }
+                if (socket.isConnected()) {
+                    socket.disconnect();
+                }
+            } catch (IOException e) {
+//                e.printStackTrace();
+            }
+        }
+        socket.close();
+    }
+
     @Override
     public String toString() {
         String serverType = (socket.isConnected() ? "Unicast"
@@ -231,29 +275,6 @@ public class UdpSocket extends Thread {
         String broadcast = isBroadcast(inetAddress) ? " " + inetAddress + ":" + port
                 : "";
         return serverType + broadcast + mcGroup + connectedTo + boundTo;
-    }
-
-    public void close() {
-        if (isRunning) {
-            isRunning = false;
-            try {
-                this.join();
-            } catch (InterruptedException e) {
-            }
-        }
-        if (!socket.isClosed()) {
-            try {
-                if (isMulticast()) {
-                    ((MulticastSocket) socket).leaveGroup(inetAddress);
-                }
-                if (socket.isConnected()) {
-                    socket.disconnect();
-                }
-            } catch (IOException e) {
-//                e.printStackTrace();
-            }
-        }
-        socket.close();
     }
 
 }
