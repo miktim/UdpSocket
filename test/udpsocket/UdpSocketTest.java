@@ -5,8 +5,12 @@
 
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.Timer;
 import java.util.TimerTask;
 import org.miktim.udpsocket.UdpSocket;
@@ -14,15 +18,43 @@ import org.miktim.udpsocket.UdpSocket;
 public class UdpSocketTest {
 
     static final int UDP_PORT = 9099; // IANA registry: unused
-    static final String REMOTE_ADDRESS = "192.168.1.107";
+    static final String REMOTE_ADDRESS = "192.168.0.105";
     static final String MULTICAST_ADDRESS = "224.0.1.191"; // unused global
 // delay for starting the receivers and completely receiving packets before closing
     static final int RECEIVER_DELAY = 100;
-    static final int SENDER_DELAY = 300; // send datagram delay
-// timeouted sockets closure
-    static final int CLOSE_TIMEOUT = 10000;
+    static final int SEND_DELAY = 300; // send datagram delay
+// test closure timeout
+    static final int TEST_TIMEOUT = 10000;
 
- //   static boolean udpPortAccessible = false;
+    static InetAddress getInet4Address(NetworkInterface ni) {
+        if (ni == null) {
+            return null;
+        }
+        Enumeration<InetAddress> iaEnum = ni.getInetAddresses();
+        while (iaEnum.hasMoreElements()) {
+            InetAddress ia = iaEnum.nextElement();
+            if (ia instanceof Inet4Address) {
+                return ia;
+            }
+        }
+        return null;
+    }
+
+    public static InetAddress getLocalHost() {
+        try {
+            Enumeration<NetworkInterface> niEnum = NetworkInterface.getNetworkInterfaces();
+            while (niEnum.hasMoreElements()) {
+                NetworkInterface ni = niEnum.nextElement();
+                InetAddress ia = getInet4Address(ni);
+                if (!(ia == null || ia.isLoopbackAddress())) {
+                    return ia;
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     static void log(String s) {
         System.out.println(s);
@@ -33,140 +65,141 @@ public class UdpSocketTest {
         return sid;
     }
 
+    static int sent = 0;
+    static int received = 0;
+    static int errors = 0;
+
+    static void testSocket(UdpSocket socket) throws IOException  {
+        log(socket.toString());
+        socket.receive(handler);
+        received = 0;
+        errors = 0;
+        byte[] payload = new byte[308];
+        for (sent = 0; sent < 5; sent++) {
+            try {
+                UdpSocket.send(payload, payload.length, socket.getPort(), socket.getInetAddress());
+                log(String.format("snd: %d %s:%d",
+                        payload.length,
+                        socket.getInetAddress().toString(),
+                        socket.getPort()));
+                Thread.sleep(RECEIVER_DELAY);
+            } catch (IOException ex) {
+                errors++;
+                log("err: " + ex.getMessage());
+            } catch (InterruptedException ex) {
+            }
+        }
+        log(String.format("Packets sent: %d received: %d Errors: %d\r\n", sent, received, errors));
+        socket.close();
+    }
+    
+    static UdpSocket.Handler handler = new UdpSocket.Handler() {
+        @Override
+        public void onStart(UdpSocket socket) {
+        }
+
+        @Override
+        public void onClose(UdpSocket socket) {
+        }
+
+        @Override
+        public void onPacket(UdpSocket socket, DatagramPacket packet) {
+            received++;
+            log(String.format("rcv: %d %s:%d",
+                    packet.getLength(),
+                    packet.getAddress().toString(),
+                    packet.getPort()));
+            if (packet.getAddress().equals(REMOTE_ADDRESS)) {
+                try { // echo packet
+                    socket.send(packet.getData(), packet.getLength());
+                } catch (IOException ex) {
+                    errors++;
+                    log("err: " + ex);
+                }
+            }
+        }
+
+        @Override
+        public void onError(UdpSocket socket, Exception e) {
+            errors++;
+            log("err: " + e);
+        }
+    };
+
     public static void main(String[] args) throws Exception {
 
-        UdpSocket.Handler handler = new UdpSocket.Handler() {
-            @Override
-            public void onStart(UdpSocket socket) {
-                log(socketId(socket) + " started. " + socket.toString());
-            }
-
-            @Override
-            public void onClose(UdpSocket socket) {
-                log(socketId(socket) + " Socket closed.");
-            }
-
-            @Override
-            public void onPacket(UdpSocket socket, DatagramPacket packet) {
-//                if (UdpSocket.isBroadcast(socket.getInetAddress())) {
-//                    udpPortAccessible = true;
-//                }
-                log(socketId(socket) + " onPacket: " + packet.getLength()
-                        + packet.getAddress() + ":" + packet.getPort());
-            }
-
-            @Override
-            public void onError(UdpSocket socket, Exception e) {
-                log(socketId(socket) + " onError: " + e);
-            }
-
-        };
-
+        InetAddress ias = InetAddress.getByName("0.0.0.0");
         InetAddress iab = InetAddress.getByName("255.255.255.255");
 //        InetAddress iah = InetAddress.getLocalHost();
-        InetAddress iah = InetAddress.getByName("localhost");
+        InetAddress iah = getLocalHost();
         InetAddress ial = InetAddress.getByName("localhost");
         InetAddress iam = InetAddress.getByName(MULTICAST_ADDRESS);
+//        InetAddress iam = InetAddress.getByName("224.0.0.1");
         InetAddress iar = InetAddress.getByName(REMOTE_ADDRESS);
 
-        String osName = System.getProperty("os.name");
-        log("UdpSocket test. " + osName);
-//        log("");
-
-        UdpSocket.setReuseAddress(true);
-        try {
-            UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);
-            socket1.close();
-        } catch (IOException e) {
-            UdpSocket.setReuseAddress(false);
-        }
+        log("UdpSocket test.");
+        log("UDP port: " + UDP_PORT);
+        log("loopback: " + ial.toString());
+        log("host: " + iah.toString());
+        log("broadcast: " + iab.toString());
+        log("multicast: " + iam.toString());
+        log("remote: " + iar.toString());
+        log("special: " + ias.toString());
+        log("Test timeout: " + TEST_TIMEOUT);
         
-        if (!UdpSocket.isAccessible(UDP_PORT, null)) {
-            log("\r\nUDP port " + UDP_PORT + " is not accessible! Exit.");
+        if (!UdpSocket.isAvailable(UDP_PORT)) {
+            log("\r\nUDP port " + UDP_PORT + " is unavailable! Exit.\r\n");
             System.exit(1);
         } else {
-            log("\r\nUDP port " + UDP_PORT + " is accessible.");
+            log("\r\nUDP port " + UDP_PORT + " is available.");
         }
-// broadcast        
-        final UdpSocket socket0 = new UdpSocket(UDP_PORT);
-        socket0.receive(handler);
-//        try {
-//            Thread.sleep(RECEIVER_DELAY); // delay for starting receiver
-//            UdpSocket.send(new byte[socket.getBufLength() / 2], ia0, UDP_PORT);
-//            socket0.send(new byte[socket0.getBufLength()]);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        Thread.sleep(RECEIVER_DELAY); // closing delay for receiving packets
 
-//        if (!udpPortAccessible) {
-// check reuse address 
         try {
             UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);
+            UdpSocket socket2 = new UdpSocket(UDP_PORT, iar, iah);
             socket1.close();
-            log("Reuse address is enabled.\r\n");
+            socket2.close();
         } catch (IOException e) {
-            UdpSocket.setReuseAddress(false);
-            log("Failed to reuse address!\r\n");
+            log("Reused address failed. Exit.\r\n");
+            System.exit(1);
         }
-        if (!UdpSocket.getReuseAddress()) {
-            socket0.close();
-        }
-
-// unicast
-// bind to port connect to remote address
-        final UdpSocket socket2 = new UdpSocket(UDP_PORT, iar);
-        socket2.receive(handler);
-        Thread.sleep(RECEIVER_DELAY); // delay for starting receivers
+        UdpSocket socket1 = new UdpSocket(UDP_PORT, iar, iah);
         try {
-//            UdpSocket.send(new byte[socket2.getBufLength() / 3], ia1, UDP_PORT);
-            socket2.send(new byte[socket2.getBufLength() * 2]);
+            socket1.setReuseAddress(false);
+            UdpSocket socket2 = new UdpSocket(UDP_PORT, iar, iah);
+            socket1.close();
+            socket2.close();
         } catch (IOException e) {
-            e.printStackTrace();
-            socket2.close();
-        }
-        Thread.sleep(RECEIVER_DELAY); // closing delay for receiving packets
-        if (!UdpSocket.getReuseAddress()) {
-            socket2.close();
+            socket1.close();
+            log("Reused address Ok.\r\n");
         }
 
-// multicast, bind to port
-        final UdpSocket socket3 = new UdpSocket(UDP_PORT, iam);
-        socket3.receive(handler);
-// multicast, bind to interface
-        final UdpSocket socket4 = new UdpSocket(UDP_PORT, iam, iah);
-        socket4.receive(handler);
-        Thread.sleep(RECEIVER_DELAY); // delay for starting receivers
+//        socket1 = new UdpSocket(UDP_PORT, iar, iah);
+//        socket1.setBroadcast(true);/??? send unicast thru broadcast
+// broadcast 
+        testSocket(new UdpSocket(UDP_PORT));
+        testSocket(new UdpSocket(UDP_PORT, iab, iah));
 
+// send to loopback
+        testSocket(new UdpSocket(UDP_PORT, ial));
+
+// send to myself        
+        testSocket(new UdpSocket(UDP_PORT,iah)); 
+// remote
+        testSocket(new UdpSocket(UDP_PORT,iar,iah));
+// send to multicast
+        UdpSocket socket = new UdpSocket(UDP_PORT,iam,iah);
+        // enable loopback
+        ((MulticastSocket)socket.getDatagramSocket()).setLoopbackMode(true); // true - disable
+        testSocket(socket);
+        
         final Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                socket3.close();
-                socket4.close();
-                socket0.close();
-                socket2.close();
                 timer.cancel();
+                System.exit(0);
             }
-        }, CLOSE_TIMEOUT);
-
-        int count = 0;
-        while (socket3.isReceiving()) {// && socket4.isReceiving()) {
-//            UdpSocket.send(new byte[15], ia3, UDP_PORT);
-            socket3.send(new byte[socket3.getBufLength() / 2]); // multicast
-            socket4.send(new byte[socket4.getBufLength()]); // multicast
-            if (socket0.isOpen()) {
-                socket0.send(new byte[15]); // broadcast
-            }
-            if (socket2.isOpen()) {
-                socket2.send(new byte[30]); // unicast, connected
-            }
-            Thread.sleep(SENDER_DELAY); // delay sending
-            if (++count == 5) {
-                log("\r\nMulticast sockets loopback enabled.\r\n");
-                ((MulticastSocket) (socket3.getDatagramSocket())).setLoopbackMode(false);
-                ((MulticastSocket) (socket4.getDatagramSocket())).setLoopbackMode(false);
-            }
-        }
+        }, TEST_TIMEOUT);
     }
 }

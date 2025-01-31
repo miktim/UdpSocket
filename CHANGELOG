@@ -1,3 +1,5 @@
+3.0.0
+  - refactored, removed static methods, implements Closeable, AutoCloseable, ...
 2.1.0
   - static method isAccessible added;
   - joining to the multicast group has moved from the constructor to the receiver;

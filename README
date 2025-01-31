@@ -8,7 +8,7 @@ The maximum safe UDP payload size is ~508 bytes.
 Release notes:
   - don't forget to open the required UDP port in your firewall;
   - the socket type (datagram/multicast) is determined by the requested address (inetAddr);
-  - the created socket is bound to the port and specified bind address (localAddr);
+  - the created socket is bound to the port and specified address (localAddr);
   - multicast sockets are created with loopback disabled and one hop;
   - the receiver joins the multicast group;
   - non-multicast IPv4 addresses ending in .255 are considered broadcast;
@@ -19,50 +19,57 @@ package org.miktim.udpsocket;
 Overview:
 
   Class UdpSocket extends Thread;  
+
+    Constants:
+      static final String VERSION = "3.0.0";
   
     Constructors:
       UdpSocket(int port) throws IOException; 
-        - broadcast datagram socket (255.255.255.255)
+        - creates broadcast datagram socket (255.255.255.255)
       UdpSocket(int port, InetAddress inetAddr) throws IOException;
       UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
 
-    Constants:
-      static final String VERSION = "2.1.0";
-
     Methods:
-      static void setReuseAddress(boolean on);
-      static boolean getReuseAddress();
-        - enabled by default
-      static boolean isAccessible(int port, InetAddress localAddr) throws IOException;
-        - checks whether the port is accessible on the specified interface (can be null).
+      static boolean isAvaliable(int port) throws IOException;
+        - checks whether the port is available.
       static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException;
         - sends datagram 
       static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
         - sends a datagram through the specified interface (localAddr)
-      
+      static boolean seemsBroadcast(InetAddress inetAddr);
+        - the address is considered broadcast
+
       void send(byte[] buf) throws IOException;
         - sends datagram using socket info
       void send(byte[] buf, int len) throws IOException;
         - sends datagram using socket info
 
-      void setBufLength(int len); 
-        - sets the buffer length of the receiving datagram
-      int getBufLength();
+      void setPayloadSize(int len); 
+        - sets the payload buffer length of the receiving datagrams
+      int getPayloadSize();
         - default: 1024 bytes
 
       void receive(UdpSocket.Handler handler) throws IOException; 
         - joins multicast group, starts receiving datagrams
 
       void close(); 
-        - stop receiving, close datagram socket
+        - stop receiving, leave multicast group, disconnect, close datagram socket
 
+      DatagramSocket getDatagramSocket();
       boolean isOpen(); 
       boolean isReceiving();
       boolean isMulticast();
       boolean isBroadcast();
+        - returns true if inetAddr seems broadcast
       InetAddress getInetAddress();
-        - returns inetAddr parameter
-      DatagramSocket getDatagramSocket();
+        - returns inetAddr
+      int getPort();
+      InetAddres getLocalAddress();
+        - returns the local address to which the socket is bound.
+      void setReuseAddress(boolean on);
+        - enable/disable reuse of this socket
+      boolean getReuseAddress();
+        - enabled by default
 
     Interface UdpSocket.Handler:
       void onStart(UdpSocket socket);
@@ -73,7 +80,8 @@ Overview:
 
 Helpful Links:  
   - using multicast: 
-      https://docs.oracle.com/cd/E23824_01/html/821-1602/sockets-137.html
-  - IANA address and port registry:
-      https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
-      https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
+      https://docs.oracle.com/cd/E23824_01/html/821-1602/sockets-137.html  
+  - IANA address and port registry:  
+      https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml  
+      https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml  
+
