@@ -2,74 +2,86 @@ UdpSocket, MIT (c) 2019-2025 miktim@mail.ru
 
 Java SE 7+ UDP broadcast/unicast/multicast sender/receiver  
 
-The UDP protocol does not guarantee datagram delivery, ordering, or duplicate protection.  
+The UDP protocol does not guarantee datagram delivery, ordering, or duplicate protection.
 The maximum safe UDP payload size is ~508 bytes.  
 
 Release notes:
   - don't forget to open the required UDP port in your firewall;
-  - the socket type (datagram/multicast) is determined by the requested address (inetAddr);
-  - the created socket is bound to the port and specified address (localAddr);
-  - multicast sockets are created with loopback disabled and one hop;
-  - the receiver joins the multicast group;
+  - the UdpSocket type (broadcast/unicast/multicast) is determined by the requested address (inetAddr);
   - non-multicast IPv4 addresses ending in .255 are considered broadcast;
+  - multicast sockets are created with loopback disabled and one hop;
   - DO NOT disable datagram socket timeout.
 
 package org.miktim.udpsocket;
 
 Overview:
 
-  Class UdpSocket extends Thread;  
+  Class UdpSocket extends Thread implements Closeable, AutoCloseable;
 
     Constants:
-      static final String VERSION = "3.0.0";
+      static final String VERSION = "3.1.1";
   
     Constructors:
       UdpSocket(int port) throws IOException; 
-        - creates broadcast datagram socket (255.255.255.255)
+        - creates broadcast socket (255.255.255.255)
+        - binds it to 0.0.0.0:port
       UdpSocket(int port, InetAddress inetAddr) throws IOException;
+        - creates socket, joins multicast group if any
+        - binds socket to 0.0.0.0:port
       UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
+        - creates socket, joins multicast group if any
+        - binds socket to localAddr:port
+      UdpSocket(int port, InetAddress inetAddr, SocketAddress socketAddr) throws IOException;
+        - creates socket, joins multicast group if any
+        - binds socket to socketAddr
 
     Methods:
-      static boolean isAvaliable(int port) throws IOException;
+      static boolean isAvailable(int port);
         - checks whether the port is available.
-      static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException;
-        - sends datagram 
-      static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
-        - sends a datagram through the specified interface (localAddr)
       static boolean seemsBroadcast(InetAddress inetAddr);
         - the address is considered broadcast
 
-      void send(byte[] buf) throws IOException;
-        - sends datagram using socket info
-      void send(byte[] buf, int len) throws IOException;
-        - sends datagram using socket info
+      static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException;
+        - sends a datagram to the remote inetAddr:port, binds to the 0.0.0.0:port
+      static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
+        - sends a datagram, binds to the localAddr:port
+      static void send(byte[] buf, int len, int port, InetAddress inetAddr, SocketAddress socketAddr) throws IOException;
+        - sends a datagram, binds to the socketAddr
 
-      void setPayloadSize(int len); 
-        - sets the payload buffer length of the receiving datagrams
+      void send(byte[] buf) throws IOException;
+        - sends datagram to inetAddr, port
+      void send(byte[] buf, int len) throws IOException;
+        - sends datagram to inetAddr, port
+
+      void setPayloadSize(int size); 
+        - sets the payload buffer length for receiving packets
       int getPayloadSize();
-        - default: 1024 bytes
+        - default: 1500 bytes
 
       void receive(UdpSocket.Handler handler) throws IOException; 
-        - joins multicast group, starts receiving datagrams
+        - calls handler, starts receiving datagrams
 
-      void close(); 
-        - stop receiving, leave multicast group, disconnect, close datagram socket
+      void close();
+        - [ stops receiving, calls handler, [ leaves multicast group, ] ] [disconnects,] closes socket
 
-      DatagramSocket getDatagramSocket();
       boolean isOpen(); 
       boolean isReceiving();
       boolean isMulticast();
+        - returns true if the inetAddr is multicast
       boolean isBroadcast();
-        - returns true if inetAddr seems broadcast
+        - returns true if the inetAddr seems broadcast
       InetAddress getInetAddress();
-        - returns inetAddr
+        - returns the inetAddr argument;
       int getPort();
-      InetAddres getLocalAddress();
+        - returns the port argument;
+      InetAddress getLocalAddress();
         - returns the local address to which the socket is bound.
       void setReuseAddress(boolean on);
         - enable/disable reuse of this socket
       boolean getReuseAddress();
         - enabled by default
+
+      DatagramSocket getDatagramSocket();
 
     Interface UdpSocket.Handler:
       void onStart(UdpSocket socket);

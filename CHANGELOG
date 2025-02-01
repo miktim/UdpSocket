@@ -1,7 +1,10 @@
+3.1.1
+  - static method send(byte[],int,InetAddress,SocketAddress) added;
+  - increased the default payload size to 1500 (ip mtu len);
 3.0.0
-  - refactored, removed static methods, implements Closeable, AutoCloseable, ...
+  - refactored; static methods of address reuse have been removed; Closeable, AutoCloseable interfaces  implemented, ...
 2.1.0
-  - static method isAccessible added;
+  - static method isAvailable(port) added;
   - joining to the multicast group has moved from the constructor to the receiver;
   - fixed test
 2.0.0

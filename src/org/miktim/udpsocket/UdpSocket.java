@@ -14,9 +14,9 @@ import java.net.MulticastSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 
-public class UdpSocket extends Thread implements Closeable, AutoCloseable {
+public final class UdpSocket extends Thread implements Closeable, AutoCloseable {
 
-    public static final String VERSION = "3.0.0";
+    public static final String VERSION = "3.1.1";
 
     public interface Handler {
 
@@ -32,7 +32,7 @@ public class UdpSocket extends Thread implements Closeable, AutoCloseable {
     private DatagramSocket socket;
     private int port;                // bind/connect/group port
     private InetAddress inetAddress; // broadcast/connect/group address
-    private int payloadSize = 1024;
+    private int payloadSize = 1500;  // mtu length
     // The maximum safe UDP payload size is ~508 bytes.  
     // For any case: SO_RCVBUF size = 106496 (Linux x64)
     private Handler handler;
@@ -60,54 +60,68 @@ public class UdpSocket extends Thread implements Closeable, AutoCloseable {
     }
 
     public static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException {
-        UdpSocket.send(buf, len, port, inetAddr, null);
+//        UdpSocket.send(buf, len, port, inetAddr, InetAddress.getByAddress(new byte[4]));
+        try(DatagramSocket soc = createSocket(inetAddr)) {
+           soc.send(new DatagramPacket(buf, len, inetAddr, port));
+        }
     }
 
-    public static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr)
+    public static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr) throws IOException {
+        UdpSocket.send(buf, len, port, inetAddr, new InetSocketAddress(localAddr, port));
+    }
+
+    public static void send(byte[] buf, int len, int port, InetAddress inetAddr, SocketAddress socketAddr)
             throws IOException {
-        try (DatagramSocket soc = UdpSocket.createSocket(port, inetAddr, localAddr)) {
+        try (DatagramSocket soc = UdpSocket.createSocket(inetAddr)) {
+            soc.bind(socketAddr);
             soc.send(new DatagramPacket(buf, len, inetAddr, port));
         }
     }
 
     public UdpSocket(int port) throws IOException {
-        udpSocket(port, InetAddress.getByName("255.255.255.255"), null);
+        udpSocket(port, InetAddress.getByName("255.255.255.255"), new InetSocketAddress(port));
     }
-
     public UdpSocket(int port, InetAddress inetAddr) throws IOException {
-        udpSocket(port, inetAddr, null);
+        udpSocket(port, inetAddr, new InetSocketAddress(port));
     }
-
-    public UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr)
+    public UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr) 
             throws IOException {
-        udpSocket(port, inetAddr, localAddr);
+        udpSocket(port, inetAddr, new InetSocketAddress(localAddr, port));
+    }
+    public UdpSocket(int port, InetAddress inetAddr, SocketAddress socketAddr)
+            throws IOException {
+        udpSocket(port, inetAddr, socketAddr);
     }
 
-    private void udpSocket(int port, InetAddress inetAddr, InetAddress localAddr) throws IOException {
+    void udpSocket(int port, InetAddress inetAddr, SocketAddress socketAddr) throws IOException {
         this.port = port;
         this.inetAddress = inetAddr;
-        socket = UdpSocket.createSocket(port, inetAddr, localAddr);
+        socket = UdpSocket.createSocket(inetAddr);
+        socket.bind(socketAddr);
+        if (isMulticast()) {
+            ((MulticastSocket) socket).joinGroup(inetAddress);
+        }
     }
-
-    static DatagramSocket createSocket(int port, InetAddress inetAddr, InetAddress localAddr)
+    
+// creates unbinded socket
+    static DatagramSocket createSocket(InetAddress inetAddr)
             throws IOException {
 
         DatagramSocket soc;
-        SocketAddress socketAddr = new InetSocketAddress(localAddr, port);
 
         if (inetAddr.isMulticastAddress()) {
-            MulticastSocket mcastSocket = new MulticastSocket(null);
-//            mcastSocket.joinGroup(inetAddress);
-            mcastSocket.setLoopbackMode(true); // disable loopback
-            mcastSocket.setTimeToLive(1);
-            soc = mcastSocket;
+            MulticastSocket mcastSoc = new MulticastSocket(null);
+            mcastSoc.setLoopbackMode(true); // disable loopback
+            mcastSoc.setTimeToLive(1);
+//            mcastSoc.joinGroup(inetAddr);
+            soc = mcastSoc;
         } else {
             soc = new DatagramSocket(null);
             soc.setBroadcast(seemsBroadcast(inetAddr));
 //            soc.connect(inetAddr, port);            
         }
         soc.setReuseAddress(true);
-        soc.bind(socketAddr);
+//        soc.bind(new InetSocketAddress(localAddr, port));
         soc.setSoTimeout(SOCKET_SO_TIMEOUT);// !!! DO NOT disable
         return soc;
     }
@@ -145,7 +159,9 @@ public class UdpSocket extends Thread implements Closeable, AutoCloseable {
     }
 
     public void connect() {
-        socket.connect(inetAddress, port);
+        // "A socket connected to a multicast address may only be used to send packets."
+        if(!isMulticast()) 
+            socket.connect(inetAddress, port);
     }
 
     public void disconnect() {
@@ -191,21 +207,11 @@ public class UdpSocket extends Thread implements Closeable, AutoCloseable {
         return !socket.isClosed();
     }
 
-    public void receive(UdpSocket.Handler handler) throws IOException {
-        if (handler == null) {
-            throw new NullPointerException("No handler");
-        }
+    public void receive(UdpSocket.Handler handler) {
         this.handler = handler;
-        if (isMulticast()) {
-//            try {
-                ((MulticastSocket) socket).joinGroup(inetAddress);
-//            } catch (IOException ex) {
-//               ex.printStackTrace();
-//            }
-        }
-        super.start();
+        start();
     }
-/*
+
     @Override
     public void start() {
         if (handler == null) {
@@ -213,7 +219,7 @@ public class UdpSocket extends Thread implements Closeable, AutoCloseable {
         }
         super.start();
     }
-*/
+
     @Override
     public void run() {
         isRunning = true;
@@ -232,6 +238,7 @@ public class UdpSocket extends Thread implements Closeable, AutoCloseable {
                     break;
                 }
                 handler.onError(this, e);
+                close();
             }
         }
         isRunning = false;
@@ -243,7 +250,7 @@ public class UdpSocket extends Thread implements Closeable, AutoCloseable {
             isRunning = false;
             try {
                 socket.setSoTimeout(5);
-                this.join();
+                this.join(); // wait thread
             } catch (InterruptedException | SocketException e) {
             }
         }
@@ -256,7 +263,7 @@ public class UdpSocket extends Thread implements Closeable, AutoCloseable {
                     socket.disconnect();
                 }
             } catch (IOException e) {
-//                e.printStackTrace();
+                e.printStackTrace();
             }
         }
         socket.close();
