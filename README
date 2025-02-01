@@ -59,10 +59,10 @@ Overview:
         - default: 1500 bytes
 
       void receive(UdpSocket.Handler handler) throws IOException; 
-        - calls handler, starts receiving datagrams
+        - calls handler.onStart, starts receiving datagrams
 
       void close();
-        - [ stops receiving, calls handler, [ leaves multicast group, ] ] [disconnects,] closes socket
+        - [stops receiving, calls handler.onClose,] [leaves multicast group,] [disconnect,] close socket
 
       boolean isOpen(); 
       boolean isReceiving();
@@ -87,8 +87,9 @@ Overview:
       void onStart(UdpSocket socket);
       void onPacket(UdpSocket socket, DatagramPacket packet);
       void onError(UdpSocket socket, Exception e);
+        - any exception closes the socket
       void onClose(UdpSocket socket); 
-        - called BEFORE closing the datagram socket
+        - called BEFORE closing the socket
 
 Helpful Links:  
   - using multicast: 

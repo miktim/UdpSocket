@@ -1,12 +1,15 @@
 3.1.1
-  - static method send(byte[],int,InetAddress,SocketAddress) added;
+  - fixed close method bug;
+  - added constructor with SocketAddress arg;
+  - added static method send with SocketAddress arg;
   - increased the default payload size to 1500 (ip mtu len);
+  - improved test
 3.0.0
   - refactored; static methods of address reuse have been removed; Closeable, AutoCloseable interfaces  implemented, ...
 2.1.0
   - static method isAvailable(port) added;
   - joining to the multicast group has moved from the constructor to the receiver;
-  - fixed test
+  - improved test
 2.0.0
   - removed implicit socket connection to remote address;
-  - fixed test
+  - improved test
