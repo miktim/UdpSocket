@@ -19,7 +19,7 @@ Overview:
   Class UdpSocket extends Thread implements Closeable, AutoCloseable;
 
     Constants:
-      static final String VERSION = "3.1.1";
+      static final String VERSION = "3.1.2";
   
     Constructors:
       UdpSocket(int port) throws IOException; 
