@@ -1,5 +1,7 @@
 /*
  * UdpSocketTest, MIT (c) 2021-2025 miktim@mail.ru
+ * Enable the UDP_PORT in your firewall
+ * Linux: internal, external, public zones
  */
 //package udpsocket;
 

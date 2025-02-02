@@ -83,6 +83,10 @@ Overview:
 
       DatagramSocket getDatagramSocket();
 
+      @Overridden
+      toString()
+        - datagram/multicast SOCKET info
+
     Interface UdpSocket.Handler:
       void onStart(UdpSocket socket);
       void onPacket(UdpSocket socket, DatagramPacket packet);

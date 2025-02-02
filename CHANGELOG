@@ -1,3 +1,5 @@
+3.1.2
+  - modified UdpSocket.toString()
 3.1.1
   - fixed close method bug;
   - added constructor with SocketAddress arg;

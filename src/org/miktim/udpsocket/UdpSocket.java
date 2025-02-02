@@ -56,13 +56,13 @@ public final class UdpSocket extends Thread implements Closeable, AutoCloseable 
             return false;
         }
         byte[] b = addr.getAddress();
-        return b.length == 4 && b[3] == (byte) 255;
+        return b.length == 4 && (b[3] == (byte) 255);
     }
 
     public static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException {
 //        UdpSocket.send(buf, len, port, inetAddr, InetAddress.getByAddress(new byte[4]));
-        try(DatagramSocket soc = createSocket(inetAddr)) {
-           soc.send(new DatagramPacket(buf, len, inetAddr, port));
+        try (DatagramSocket soc = createSocket(inetAddr)) {
+            soc.send(new DatagramPacket(buf, len, inetAddr, port));
         }
     }
 
@@ -81,13 +81,16 @@ public final class UdpSocket extends Thread implements Closeable, AutoCloseable 
     public UdpSocket(int port) throws IOException {
         udpSocket(port, InetAddress.getByName("255.255.255.255"), new InetSocketAddress(port));
     }
+
     public UdpSocket(int port, InetAddress inetAddr) throws IOException {
         udpSocket(port, inetAddr, new InetSocketAddress(port));
     }
-    public UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr) 
+
+    public UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr)
             throws IOException {
         udpSocket(port, inetAddr, new InetSocketAddress(localAddr, port));
     }
+
     public UdpSocket(int port, InetAddress inetAddr, SocketAddress socketAddr)
             throws IOException {
         udpSocket(port, inetAddr, socketAddr);
@@ -102,7 +105,7 @@ public final class UdpSocket extends Thread implements Closeable, AutoCloseable 
             ((MulticastSocket) socket).joinGroup(inetAddress);
         }
     }
-    
+
 // creates unbinded socket
     static DatagramSocket createSocket(InetAddress inetAddr)
             throws IOException {
@@ -160,8 +163,9 @@ public final class UdpSocket extends Thread implements Closeable, AutoCloseable 
 
     public void connect() {
         // "A socket connected to a multicast address may only be used to send packets."
-        if(!isMulticast()) 
+        if (!isMulticast()) {
             socket.connect(inetAddress, port);
+        }
     }
 
     public void disconnect() {
@@ -269,30 +273,38 @@ public final class UdpSocket extends Thread implements Closeable, AutoCloseable 
         socket.close();
     }
 
+    public String typeToString() throws IOException {
+        if (socket instanceof MulticastSocket) {
+            MulticastSocket ms = (MulticastSocket) socket;
+            return String.format("Multicast(%d,%s)",
+                    ms.getTimeToLive(),
+                    "" + ms.getLoopbackMode());
+        } else if (socket.getBroadcast()) {
+            return "Broadcast";
+        }
+        return "Unicast";
+    }
+
     @Override
     public String toString() {
-        String serverType = "";
+        String info = "";
         try {
-            serverType = ((isMulticast() ? "Multicast"
-                    : (socket.getBroadcast() ? "Broadcast"
-                    : "Unicast"))) + " UDP socket";
-        } catch (SocketException ex) {
-            serverType = "UDP socket";
+            info = String.format("%s %s:%d",
+                    typeToString(),
+                    inetAddress.toString(),
+                    port);
+            info += socket.isConnected() 
+                    ? " connected: " + socket.getLocalSocketAddress()
+                    : "";
+            info += socket.isBound()
+                    ? (" bound: " + socket.getLocalSocketAddress())
+                    : "";
+            info += socket.isClosed() ? " closed" : "";
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
 
-        String mcGroup = inetAddress.isMulticastAddress()
-                ? " MCgroup "
-                + (inetAddress.isMCGlobal() ? "global" : "local")
-                : "";
-        String boundTo = socket.isBound()
-                ? (" bound to " + socket.getLocalSocketAddress())
-                : "";
-        String connectedTo = socket.isConnected()
-                ? " connected to " + socket.getRemoteSocketAddress()
-                : "";
-        String inetAddr = " " + inetAddress + ":" + port;
-
-        return serverType + inetAddr + mcGroup + connectedTo + boundTo;
+        return info;
     }
 
 }
