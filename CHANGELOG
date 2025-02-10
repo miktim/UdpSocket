@@ -1,3 +1,5 @@
+3.1.3
+  - IOException does not close the socket
 3.1.2
   - modified UdpSocket.toString()
 3.1.1

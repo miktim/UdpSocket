@@ -242,7 +242,7 @@ public final class UdpSocket extends Thread implements Closeable, AutoCloseable 
                     break;
                 }
                 handler.onError(this, e);
-                close();
+//                close();
             }
         }
         isRunning = false;
@@ -276,9 +276,9 @@ public final class UdpSocket extends Thread implements Closeable, AutoCloseable 
     public String typeToString() throws IOException {
         if (socket instanceof MulticastSocket) {
             MulticastSocket ms = (MulticastSocket) socket;
-            return String.format("Multicast(%d,%s)",
+            return String.format("Multicast(%d%s)",
                     ms.getTimeToLive(),
-                    "" + ms.getLoopbackMode());
+                    ms.getLoopbackMode() ? "":",loopback");
         } else if (socket.getBroadcast()) {
             return "Broadcast";
         }

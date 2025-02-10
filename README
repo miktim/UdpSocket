@@ -12,6 +12,8 @@ Release notes:
   - multicast sockets are created with loopback disabled and one hop;
   - DO NOT disable datagram socket timeout.
 
+The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8 for target JDK1.7
+
 package org.miktim.udpsocket;
 
 Overview:
@@ -83,15 +85,13 @@ Overview:
 
       DatagramSocket getDatagramSocket();
 
-      @Overridden
-      toString()
+      String toString()
         - datagram/multicast SOCKET info
 
     Interface UdpSocket.Handler:
       void onStart(UdpSocket socket);
       void onPacket(UdpSocket socket, DatagramPacket packet);
       void onError(UdpSocket socket, Exception e);
-        - any exception closes the socket
       void onClose(UdpSocket socket); 
         - called BEFORE closing the socket
 
