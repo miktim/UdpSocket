@@ -40,28 +40,28 @@ Note: don't forget to open the required UDP port in your firewall.
   
         InetSocketAddress getRemote();
         UdpSocket bind() throws IOException;
-          - binds unbounded socket to 0.0.0.0/remoteAddr
+          - binds unbounded socket to 0.0.0.0/remotePort
         void send(DatagramPacket dp) throws IOException;
-          - binds unbounded socket to 0.0.0.0/remoteAddr
+          - binds unbounded socket to 0.0.0.0/remotePort
           - if packet remote address unspecified, fills it with remote socket
         void send(byte[] buf) throws IOException;
         void receive(DatagramPacket dp) throws IOException;
-          - binds unbounded socket to 0.0.0.0/remoteAddr
+          - binds unbounded socket to 0.0.0.0/remotePort
             
-        UdpSocket setPayloadSize(int size)
+        UdpSocket setPayloadSize(int size);
           - sets max size of received datagram
         int getPayloadSize();
           - default: 1500 bytes
-        boolean isReceiving()
+        boolean isReceiving();
           - returns receiving state
-        void receive(UdpSocket.Handler handler)
-          - binds unbounded socket to 0.0.0.0/remoteAddr
+        void receive(UdpSocket.Handler handler);
+          - binds unbounded socket to 0.0.0.0/remotePort
           - starts receiving datagram
-        void receive(DatagramPacket dp)
-          - binds unbounded socket to 0.0.0.0/remoteAddr
+        void receive(DatagramPacket dp) throws IOException;
+          - binds unbounded socket to 0.0.0.0/remotePort
           - waits datagram
   
-        void close()
+        void close();
           - [stops receiving,] close socket
   
   See also:  
