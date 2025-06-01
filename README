@@ -1,104 +1,73 @@
-UdpSocket, MIT (c) 2019-2025 miktim@mail.ru  
-
-Java SE 7+ UDP broadcast/unicast/multicast sender/receiver  
-
-The UDP protocol does not guarantee datagram delivery, ordering, or duplicate protection.
-The maximum safe UDP payload size is ~508 bytes.  
-
-Release notes:
-  - don't forget to open the required UDP port in your firewall;
-  - the UdpSocket type (broadcast/unicast/multicast) is determined by the requested address (inetAddr);
-  - non-multicast IPv4 addresses ending in .255 are considered broadcast;
-  - multicast sockets are created with loopback disabled and one hop;
-  - DO NOT disable datagram socket timeout.
-
-The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8 for target JDK1.7
-
-package org.miktim.udpsocket;
-
-Overview:
-
-  Class UdpSocket extends Thread implements Closeable, AutoCloseable;
-
-    Constants:
-      static final String VERSION = "3.1.3";
+Java SE 7+ /Android 4+ UDP client and server, MIT (c) 2025 miktim@mail.ru  
   
-    Constructors:
-      UdpSocket(int port) throws IOException; 
-        - creates broadcast socket (255.255.255.255)
-        - binds it to 0.0.0.0:port
-      UdpSocket(int port, InetAddress inetAddr) throws IOException;
-        - creates socket, joins multicast group if any
-        - binds socket to 0.0.0.0:port
-      UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
-        - creates socket, joins multicast group if any
-        - binds socket to localAddr:port
-      UdpSocket(int port, InetAddress inetAddr, SocketAddress socketAddr) throws IOException;
-        - creates socket, joins multicast group if any
-        - binds socket to socketAddr
+The UDP protocol does not guarantee datagram delivery, ordering, or duplicate protection. 
+The maximum safe UDP payload size is ~508 bytes.  
+ 
+Based on the Java MulticastSocket class  
+  
+Advantage of this class:  
+  - supported by old and current versions of Java and Android.  
+Disadvantage:  
+  - does not always work and not on all devices;  
+  - does not support anycast and source-specific multicast.  
 
-    Methods:
-      static boolean isAvailable(int port);
-        - checks whether the port is available.
-      static boolean seemsBroadcast(InetAddress inetAddr);
-        - the address is considered broadcast
-
-      static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException;
-        - sends a datagram to the remote inetAddr:port, binds to the 0.0.0.0:port
-      static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr) throws IOException;
-        - sends a datagram, binds to the localAddr:port
-      static void send(byte[] buf, int len, int port, InetAddress inetAddr, SocketAddress socketAddr) throws IOException;
-        - sends a datagram, binds to the socketAddr
-
-      void send(byte[] buf) throws IOException;
-        - sends datagram to inetAddr, port
-      void send(byte[] buf, int len) throws IOException;
-        - sends datagram to inetAddr, port
-
-      void setPayloadSize(int size); 
-        - sets the payload buffer length for receiving packets
-      int getPayloadSize();
-        - default: 1500 bytes
-
-      void receive(UdpSocket.Handler handler) throws IOException; 
-        - calls handler.onStart, starts receiving datagrams
-
-      void close();
-        - [stops receiving, calls handler.onClose,] [leaves multicast group,] [disconnect,] close socket
-
-      boolean isOpen(); 
-      boolean isReceiving();
-      boolean isMulticast();
-        - returns true if the inetAddr is multicast
-      boolean isBroadcast();
-        - returns true if the inetAddr seems broadcast
-      InetAddress getInetAddress();
-        - returns the inetAddr argument;
-      int getPort();
-        - returns the port argument;
-      InetAddress getLocalAddress();
-        - returns the local address to which the socket is bound.
-      void setReuseAddress(boolean on);
-        - enable/disable reuse of this socket
-      boolean getReuseAddress();
-        - enabled by default
-
-      DatagramSocket getDatagramSocket();
-
-      String toString()
-        - datagram/multicast SOCKET info
-
-    Interface UdpSocket.Handler:
-      void onStart(UdpSocket socket);
-      void onPacket(UdpSocket socket, DatagramPacket packet);
-      void onError(UdpSocket socket, Exception e);
-      void onClose(UdpSocket socket); 
-        - called BEFORE closing the socket
-
-Helpful Links:  
-  - using multicast: 
-      https://docs.oracle.com/cd/E23824_01/html/821-1602/sockets-137.html  
-  - IANA address and port registry:  
-      https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml  
-      https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml  
-
+Note: don't forget to open the required UDP port in your firewall.  
+    
+  package org.miktim.udpsocket  
+    
+    Class UdpSocket  
+  
+      Constants:  
+        String VERSION = "4.0.0"  
+  
+      Constructors:  
+        Constructor creates reuse enabled unbinded sockets.
+        Sets the network interface for outgoing multicast datagrams sent on this socket.
+        For multicast remote address joins address group on interface
+  
+        UdpSocket(InetSocketAddress remote, NetworkInterface netIf) throws IOException; 
+        UdpSocket(InetAddress remoteAddr, int remotePort, String netIfName) throws IOException;
+  
+      interface Handler {
+        void onStart(UdpSocket us);
+        void onError(UdpSocket us, Exception e);
+        void onPacket(UdpSocket us, DatagramPacket dp);
+        void onClose(UdpSocket us); // called before closing datagram socket
+      }
+  
+      Methods:  
+        static void isAvailable(int port);
+  
+        InetSocketAddress getRemote();
+        UdpSocket bind() throws IOException;
+          - binds unbounded socket to 0.0.0.0/remoteAddr
+        void send(DatagramPacket dp) throws IOException;
+          - binds unbounded socket to 0.0.0.0/remoteAddr
+          - if packet remote address unspecified, fills it with remote socket
+        void send(byte[] buf) throws IOException;
+        void receive(DatagramPacket dp) throws IOException;
+          - binds unbounded socket to 0.0.0.0/remoteAddr
+            
+        UdpSocket setPayloadSize(int size)
+          - sets max size of received datagram
+        int getPayloadSize();
+          - default: 1500 bytes
+        boolean isReceiving()
+          - returns receiving state
+        void receive(UdpSocket.Handler handler)
+          - binds unbounded socket to 0.0.0.0/remoteAddr
+          - starts receiving datagram
+        void receive(DatagramPacket dp)
+          - binds unbounded socket to 0.0.0.0/remoteAddr
+          - waits datagram
+  
+        void close()
+          - [stops receiving,] close socket
+  
+  See also:  
+    inherited DatagramSocket and MulticastSocket methods  
+      https://docs.oracle.com/javase/7/docs/api/java/net/DatagramSocket.html  
+      https://docs.oracle.com/javase/7/docs/api/java/net/MulticastSocket.html  
+  
+      https://docs.oracle.com/javase/7/docs/api/java/net/DatagramPacket.html
+  

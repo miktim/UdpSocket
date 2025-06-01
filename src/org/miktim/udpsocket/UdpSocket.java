@@ -1,6 +1,4 @@
 /*
- * UdpSocket, MIT (c) 2019-2025 miktim@mail.ru
- * UDP broadcast/unicast/multicast sender/receiver
  */
 package org.miktim.udpsocket;
 
@@ -11,33 +9,72 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
-import java.net.SocketAddress;
+import java.net.NetworkInterface;
 import java.net.SocketException;
 
-public final class UdpSocket extends Thread implements Closeable, AutoCloseable {
+public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable {
+    
+    public static String VERSION = "4.0.0";
+    InetSocketAddress remote;
 
-    public static final String VERSION = "3.1.3";
+    public UdpSocket(InetSocketAddress remoteSoc, NetworkInterface netIf) throws IOException {
+        super(null);
+        setReuseAddress(true);
+        remote = remoteSoc;
+        setNetworkInterface(netIf);
+        if (isMulticast()) {
+            joinGroup(remote, netIf);
+//            joinGroup(remote.getAddress());
+        }
+    }
+
+    public UdpSocket(InetAddress addr, int port, String netIfName) throws IOException {
+        this(new InetSocketAddress(addr, port), NetworkInterface.getByName(netIfName));
+    }
 
     public interface Handler {
 
-        void onStart(UdpSocket s);
+        void onStart(UdpSocket us);
 
-        void onPacket(UdpSocket s, DatagramPacket p);
+        void onError(UdpSocket us, Exception e);
 
-        void onError(UdpSocket s, Exception e);
+        void onPacket(UdpSocket us, DatagramPacket dp);
 
-        void onClose(UdpSocket s); // called before closing datagram socket
+        void onClose(UdpSocket us); // called before closing datagram socket
     }
 
-    private DatagramSocket socket;
-    private int port;                // bind/connect/group port
-    private InetAddress inetAddress; // broadcast/connect/group address
-    private int payloadSize = 1500;  // mtu length
-    // The maximum safe UDP payload size is ~508 bytes.  
-    // For any case: SO_RCVBUF size = 106496 (Linux x64)
-    private Handler handler;
-    private boolean isRunning = false;
-    private static final int SOCKET_SO_TIMEOUT = 1000;
+    class UdpListener extends Thread {
+
+        UdpSocket us;
+
+        UdpListener(UdpSocket socket) {
+            us = socket;
+        }
+
+        @Override
+        public void run() {
+            us.isRunning = true;
+            us.handler.onStart(us);
+            while (us.isReceiving() && !us.isClosed()) {
+                try {
+                    DatagramPacket dp
+                            = new DatagramPacket(new byte[us.payloadSize], us.payloadSize);
+                    us.superReceive(dp);
+                    us.handler.onPacket(us, dp);
+                } catch (java.net.SocketTimeoutException e) {
+                } catch (Exception e) {
+                    if (!us.isReceiving() || us.isClosed()) { //
+                        break;
+                    }
+                    try {
+                        us.handler.onError(us, e);
+                        us.close();
+                    } catch (Exception ignore) {
+                    }
+                }
+            }
+        }
+    }
 
     public static boolean isAvailable(int port) {
 // https://stackoverflow.com/questions/434718/sockets-discover-port-availability-using-java
@@ -51,260 +88,105 @@ public final class UdpSocket extends Thread implements Closeable, AutoCloseable 
         return true;
     }
 
-    public static boolean seemsBroadcast(InetAddress addr) {
-        if (addr.isMulticastAddress()) {
-            return false;
+    UdpSocket bind() throws IOException {
+        if (!isBound()) {
+            bind(new InetSocketAddress(remote.getPort()));
         }
-        byte[] b = addr.getAddress();
-        return b.length == 4 && (b[3] == (byte) 255);
+        return this;
     }
 
-    public static void send(byte[] buf, int len, int port, InetAddress inetAddr) throws IOException {
-//        UdpSocket.send(buf, len, port, inetAddr, InetAddress.getByAddress(new byte[4]));
-        try (DatagramSocket soc = createSocket(inetAddr)) {
-            soc.send(new DatagramPacket(buf, len, inetAddr, port));
-        }
+    public InetSocketAddress getRemote() {
+        return remote;
     }
 
-    public static void send(byte[] buf, int len, int port, InetAddress inetAddr, InetAddress localAddr) throws IOException {
-        UdpSocket.send(buf, len, port, inetAddr, new InetSocketAddress(localAddr, port));
+    public final boolean isMulticast() {
+        return remote.getAddress().isMulticastAddress();
+    }
+    
+    Handler handler;
+    boolean isRunning; // receiving in progress
+    private int payloadSize = 1500; // maximum length of received datagrams
+    static final int SO_TIMEOUT = 500; //socket timeout
+    
+    public boolean isReceiving() {
+        return isRunning;
     }
 
-    public static void send(byte[] buf, int len, int port, InetAddress inetAddr, SocketAddress socketAddr)
-            throws IOException {
-        try (DatagramSocket soc = UdpSocket.createSocket(inetAddr)) {
-            soc.bind(socketAddr);
-            soc.send(new DatagramPacket(buf, len, inetAddr, port));
-        }
-    }
-
-    public UdpSocket(int port) throws IOException {
-        udpSocket(port, InetAddress.getByName("255.255.255.255"), new InetSocketAddress(port));
-    }
-
-    public UdpSocket(int port, InetAddress inetAddr) throws IOException {
-        udpSocket(port, inetAddr, new InetSocketAddress(port));
-    }
-
-    public UdpSocket(int port, InetAddress inetAddr, InetAddress localAddr)
-            throws IOException {
-        udpSocket(port, inetAddr, new InetSocketAddress(localAddr, port));
-    }
-
-    public UdpSocket(int port, InetAddress inetAddr, SocketAddress socketAddr)
-            throws IOException {
-        udpSocket(port, inetAddr, socketAddr);
-    }
-
-    void udpSocket(int port, InetAddress inetAddr, SocketAddress socketAddr) throws IOException {
-        this.port = port;
-        this.inetAddress = inetAddr;
-        socket = UdpSocket.createSocket(inetAddr);
-        socket.bind(socketAddr);
-        if (isMulticast()) {
-            ((MulticastSocket) socket).joinGroup(inetAddress);
-        }
-    }
-
-// creates unbinded socket
-    static DatagramSocket createSocket(InetAddress inetAddr)
-            throws IOException {
-
-        DatagramSocket soc;
-
-        if (inetAddr.isMulticastAddress()) {
-            MulticastSocket mcastSoc = new MulticastSocket(null);
-            mcastSoc.setLoopbackMode(true); // disable loopback
-            mcastSoc.setTimeToLive(1);
-//            mcastSoc.joinGroup(inetAddr);
-            soc = mcastSoc;
-        } else {
-            soc = new DatagramSocket(null);
-            soc.setBroadcast(seemsBroadcast(inetAddr));
-//            soc.connect(inetAddr, port);            
-        }
-        soc.setReuseAddress(true);
-//        soc.bind(new InetSocketAddress(localAddr, port));
-        soc.setSoTimeout(SOCKET_SO_TIMEOUT);// !!! DO NOT disable
-        return soc;
-    }
-
-    public void send(byte[] buf) throws IOException {
-        socket.send(new DatagramPacket(buf, buf.length, inetAddress, port));
-    }
-
-    public void send(byte[] buf, int len) throws IOException {
-        socket.send(new DatagramPacket(buf, len, inetAddress, port));
-    }
-
-    public boolean isMulticast() {
-        return inetAddress.isMulticastAddress();
-    }
-
-    public boolean isBroadcast() {
-        return seemsBroadcast(inetAddress);
-    }
-
-    public void setBroadcast(boolean on) throws SocketException {
-        socket.setBroadcast(on);
-    }
-
-    public boolean getBroadcast() throws SocketException {
-        return socket.getBroadcast();
-    }
-
-    public void setReuseAddress(boolean on) throws SocketException {
-        socket.setReuseAddress(on);
-    }
-
-    public boolean getReuseAddress() throws SocketException {
-        return socket.getReuseAddress();
-    }
-
-    public void connect() {
-        // "A socket connected to a multicast address may only be used to send packets."
-        if (!isMulticast()) {
-            socket.connect(inetAddress, port);
-        }
-    }
-
-    public void disconnect() {
-        socket.disconnect();
-    }
-
-    public boolean isConnected() {
-        return socket.isConnected();
-    }
-
-    public DatagramSocket getDatagramSocket() {
-        return socket;
-    }
-
-    public void setPayloadSize(int size) throws IllegalArgumentException {
-        if (size <= 0) {
-            throw new IllegalArgumentException();
-        }
+    public UdpSocket setPayloadSize(int size) {
         payloadSize = size;
+        return this;
     }
 
     public int getPayloadSize() {
         return payloadSize;
     }
 
-    public InetAddress getInetAddress() {
-        return inetAddress;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public InetAddress getLocalAddress() {
-        return socket.getLocalAddress();
-    }
-
-    public boolean isReceiving() {
-        return isRunning;
-    }
-
-    public boolean isOpen() {
-        return !socket.isClosed();
-    }
-
-    public void receive(UdpSocket.Handler handler) {
-        this.handler = handler;
-        start();
-    }
-
-    @Override
-    public void start() {
+    public void receive(Handler handler) throws IOException {
+        bind();
+        if (isReceiving()) {
+            throw new IllegalStateException("Already receiving");
+        }
         if (handler == null) {
             throw new NullPointerException("No handler");
         }
-        super.start();
+        this.handler = handler;
+        this.setSoTimeout(SO_TIMEOUT);
+        (new UdpListener(this)).start();
+    }
+
+    void superReceive(DatagramPacket dp) throws IOException {
+        super.receive(dp); // need for listener
     }
 
     @Override
-    public void run() {
-        isRunning = true;
-        handler.onStart(this);
-        while (isRunning && !socket.isClosed()) {
-            try {
-                DatagramPacket dp
-                        = new DatagramPacket(new byte[payloadSize], payloadSize);
-                socket.receive(dp);
-                handler.onPacket(this, dp);
-            } catch (java.net.SocketTimeoutException e) {
-// it takes a timeout to close the socket properly.
-// DO NOT DISABLE the socket timeout!
-            } catch (IOException e) {
-                if (!isRunning || socket.isClosed()) {
-                    break;
-                }
-                handler.onError(this, e);
-//                close();
-            }
-        }
-        isRunning = false;
-        handler.onClose(this);
+    public void receive(DatagramPacket dp) throws IOException {
+        bind();
+        superReceive(dp);
     }
 
+    public void send(byte[] buf) throws IOException {
+        send(new DatagramPacket(buf, buf.length));
+    }
+
+    @Override
+    public void send(DatagramPacket dp) throws IOException {
+        bind();
+        if (dp.getAddress() == null) {
+            dp.setSocketAddress(remote);
+        }
+        super.send(dp);
+    }
+
+    @Override
     public void close() {
-        if (isRunning) {
+        if (isReceiving()) {
             isRunning = false;
-            try {
-                socket.setSoTimeout(5);
-                this.join(); // wait thread
-            } catch (InterruptedException | SocketException e) {
-            }
+            handler.onClose(this);
+            handler = null;
         }
-        if (!socket.isClosed()) {
-            try {
-                if (isMulticast()) {
-                    ((MulticastSocket) socket).leaveGroup(inetAddress);
-                }
-                if (socket.isConnected()) {
-                    socket.disconnect();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        socket.close();
-    }
-
-    public String typeToString() throws IOException {
-        if (socket instanceof MulticastSocket) {
-            MulticastSocket ms = (MulticastSocket) socket;
-            return String.format("Multicast(%d%s)",
-                    ms.getTimeToLive(),
-                    ms.getLoopbackMode() ? "":",loopback");
-        } else if (socket.getBroadcast()) {
-            return "Broadcast";
-        }
-        return "Unicast";
+        super.close();
     }
 
     @Override
     public String toString() {
-        String info = "";
+        StringBuilder sb = new StringBuilder();
         try {
-            info = String.format("%s %s:%d",
-                    typeToString(),
-                    inetAddress.toString(),
-                    port);
-            info += socket.isConnected() 
-                    ? " connected: " + socket.getLocalSocketAddress()
-                    : "";
-            info += socket.isBound()
-                    ? (" bound: " + socket.getLocalSocketAddress())
-                    : "";
-            info += socket.isClosed() ? " closed" : "";
-        } catch (IOException ex) {
-            ex.printStackTrace();
+            sb.append(String.format("UdpSocket remote: %s bound to: %s\n\r",
+                     getRemote(), getLocalAddress()));
+            sb.append("Options:\r\n");
+            sb.append(String.format("SO_SNDBUF: %d SO_RCVBUF: %d SO_REUSEADDR: %b SO_BROADCAST: %b\n\r",
+                    getSendBufferSize(),
+                    getReceiveBufferSize(),
+                    getReuseAddress(),
+                    getBroadcast()));
+            NetworkInterface intf = getNetworkInterface();
+            sb.append(String.format("IP_MULTICAST_IF: %s IP_MULTICAST_TTL: %d IP_MULTICAST_LOOP: %b",
+                    intf != null ? intf.getDisplayName() : "null",
+                    getTimeToLive(),
+                    getLoopbackMode()));
+        } catch (IOException e) {
+            sb.append(e.getClass().getName());
         }
-
-        return info;
+        return sb.toString();
     }
-
 }

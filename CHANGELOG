@@ -1,19 +1,2 @@
-3.1.3
-  - receiver: IOException does not close the socket
-3.1.2
-  - modified UdpSocket.toString()
-3.1.1
-  - fixed close method bug;
-  - added constructor with SocketAddress arg;
-  - added static method send with SocketAddress arg;
-  - increased the default payload size to 1500 (ip mtu len);
-  - improved test
-3.0.0
-  - refactored; static methods of address reuse have been removed; Closeable, AutoCloseable interfaces  implemented, ...
-2.1.0
-  - static method isAvailable(port) added;
-  - joining to the multicast group has moved from the constructor to the receiver;
-  - improved test
-2.0.0
-  - removed implicit socket connection to remote address;
-  - improved test
+4.0.0
+  Created 2025-06-01
