@@ -2,12 +2,12 @@
 
 echo $(javac -version)
 echo $(java -version)
-if [ -f ../../dist/udpsocket-3.0.0.jar ]; then
-  javac -cp ../../dist/udpsocket-3.0.0.jar UdpSocketTest.java
-  java  -cp ../../dist/udpsocket-3.0.0.jar:. UdpSocketTest
-  rm -f *.class
+if [ -f ./UdpSocket.jar ]; then
+#  javac -cp ./UdpSocket.jar -d . BasicTest.java
+  java  -cp ./UdpSocket.jar:. BasicTest.java
+rm -f *.class
 else
-  echo First make the udpsocket-3.0.0.jar file.
+  echo First make the UdpSocket.jar file.
 fi
 echo
 echo Completed. Press Enter to exit...

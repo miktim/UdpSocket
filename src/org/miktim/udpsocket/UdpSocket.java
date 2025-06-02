@@ -1,4 +1,8 @@
 /*
+ * UdpSocket package, MIT (c) 2025 miktim@mail.ru
+ * Manage UDP via MulticastSocket class
+ *
+ * Created 2025-06-01
  */
 package org.miktim.udpsocket;
 
@@ -8,18 +12,20 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.InterfaceAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 
 public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable {
     
-    public static String VERSION = "4.0.1";
+    public static String VERSION = "4.0.2";
     InetSocketAddress remote;
 
     public UdpSocket(InetSocketAddress remoteSoc, NetworkInterface netIf) throws IOException {
         super(null); // creates unbounded socket
         setReuseAddress(true);
+        setLoopbackMode(true); // disable loopback
         remote = remoteSoc;
         setNetworkInterface(netIf);
         if (isMulticast()) {
@@ -42,11 +48,11 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
         void onClose(UdpSocket us); // called before closing datagram socket
     }
 
-    class UdpListener extends Thread {
+    class SocketListener extends Thread {
 
         UdpSocket us;
 
-        UdpListener(UdpSocket socket) {
+        SocketListener(UdpSocket socket) {
             us = socket;
         }
 
@@ -87,7 +93,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
         return true;
     }
 
-    UdpSocket bind() throws IOException {
+    public UdpSocket bind() throws IOException {
         if (!isBound()) {
             bind(new InetSocketAddress(remote.getPort()));
         }
@@ -96,6 +102,20 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
 
     public InetSocketAddress getRemote() {
         return remote;
+    }
+
+    public InetSocketAddress getLocal() throws IOException {
+        NetworkInterface ni = getNetworkInterface();
+        if (ni == null) {
+            return new InetSocketAddress(remote.getPort());
+        }
+        Class cls = remote.getAddress().getClass();
+        for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
+            if (ia.getAddress().getClass().equals(cls)) {
+                return new InetSocketAddress(ia.getAddress(), remote.getPort());
+            }
+        }
+        throw new SocketException();
     }
 
     public final boolean isMulticast() {
@@ -128,7 +148,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
             throw new NullPointerException("No handler");
         }
         this.handler = handler;
-        (new UdpListener(this)).start();
+        (new SocketListener(this)).start();
     }
 
     @Override
@@ -168,7 +188,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
         StringBuilder sb = new StringBuilder();
         try {
             sb.append(String.format("UdpSocket remote: %s bound to: %s\n\r",
-                     getRemote(), getLocalAddress()));
+                     getRemote(), getLocalSocketAddress()));
             sb.append("Options:\r\n");
             sb.append(String.format("SO_SNDBUF: %d SO_RCVBUF: %d SO_REUSEADDR: %b SO_BROADCAST: %b\n\r",
                     getSendBufferSize(),

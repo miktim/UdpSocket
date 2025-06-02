@@ -5,13 +5,17 @@
 package udpsocket;
 
 import java.io.IOException;
+import static java.lang.String.format;
 import static java.lang.Thread.sleep;
 import java.net.DatagramPacket;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Enumeration;
 import org.miktim.udpsocket.UdpSocket;
 
 public class BasicTest {
@@ -19,32 +23,51 @@ public class BasicTest {
     static final int PORT = 9099;
     static final String INTF = "eth1"; // local interface name;
 
-    static final String HT_ADDRESS = "192.168.0.104"; // host
-    static final String MS_ADDRESS = "224.0.1.191"; // iana unassigned multicast
+    static final String MU_ADDRESS = "224.0.1.191"; // iana unassigned multicast
 //    static final String MC_ADDRESS = "224.0.0.1"; // iana All Systems on this Subnet
     static final String MC_ADDRESS = "FF09::114"; // iana private experiment
 //    static final String MS_ADDRESS = "232.0.1.199"; //iana source-specific
 
     InetSocketAddress loopSoc; // loopback 127.0.0.1 socket
-    InetSocketAddress hostSoc;
-    InetSocketAddress bcastSoc; // 225.225.225.225 
+    InetSocketAddress hostSoc; // localhost
+    InetSocketAddress bcastSoc; // broadcast 225.225.225.225 
     InetSocketAddress mcastSoc; // MC_ADDRESS socket
-    InetSocketAddress specmcSoc; // MS_ADDRES socket
+    InetSocketAddress freemcSoc; // MU_ADDRES socket
+    InetSocketAddress wildSoc; // 0.0.0.0
+    
     InetSocketAddress[] sockets;
 
-    BasicTest() throws UnknownHostException {
+    BasicTest() throws UnknownHostException, SocketException {
 
         loopSoc = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT);
         bcastSoc = new InetSocketAddress(InetAddress.getByName("255.255.255.255"), PORT);
         mcastSoc = new InetSocketAddress(InetAddress.getByName(MC_ADDRESS), PORT);
-        specmcSoc = new InetSocketAddress(InetAddress.getByName(MS_ADDRESS), PORT);
-        hostSoc = new InetSocketAddress(InetAddress.getByName(HT_ADDRESS), PORT);
-        sockets = new InetSocketAddress[]{loopSoc, hostSoc,bcastSoc, mcastSoc, specmcSoc};
+        freemcSoc = new InetSocketAddress(InetAddress.getByName(MU_ADDRESS), PORT);
+        InetAddress hostAddr = getInet4Address(NetworkInterface.getByName(INTF));
+        hostSoc = new InetSocketAddress(hostAddr, PORT);
+        wildSoc = new InetSocketAddress(PORT);
+        
+        sockets = new InetSocketAddress[]{loopSoc, hostSoc,bcastSoc, mcastSoc, freemcSoc, wildSoc};
     }
 
     void log(Object msg) {
         System.out.println(String.valueOf(msg));
     }
+
+    static InetAddress getInet4Address(NetworkInterface ni) {
+        if (ni == null) {
+            return null;
+        }
+        Enumeration<InetAddress> iaEnum = ni.getInetAddresses();
+        while (iaEnum.hasMoreElements()) {
+            InetAddress ia = iaEnum.nextElement();
+            if (ia instanceof Inet4Address) {
+                return ia;
+            }
+        }
+        return null;
+    }
+    
     UdpSocket.Handler handler = new UdpSocket.Handler() {
         @Override
         public void onStart(UdpSocket us) {
@@ -73,6 +96,7 @@ public class BasicTest {
     }
 
     void run() throws IOException, InterruptedException {
+        log(format("UdpSocket %s basic test", UdpSocket.VERSION));
         if (!UdpSocket.isAvailable(PORT)) {
             log("Port unavailible: " + PORT);
             System.exit(1);
@@ -80,9 +104,9 @@ public class BasicTest {
         UdpSocket us;
         for (InetSocketAddress remote : sockets) {
             us = new UdpSocket(remote, NetworkInterface.getByName(INTF));
+            us.bind();
             if(us.isMulticast()) {
                 us.setLoopbackMode(false);// enable loopback
-//               us.setTimeToLive(10);
             }
             log("\n"+us);
             try {
@@ -90,9 +114,12 @@ public class BasicTest {
                 us.send("Send/receive OK".getBytes());
                 sleep(200);
             } catch (IOException e) {
-                log(us.getRemote().getAddress()+" "+ e.getClass());
+                log("Send failed:");
+                e.printStackTrace();
+                sleep(200);
             }
             us.close();
         }
+        log("\nCompleted");
     }
 }

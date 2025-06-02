@@ -1,3 +1,6 @@
+4.0.2
+  - constructors disable multicast loopback
+  - declaring the bind() method as public
 4.0.1
   - receive method fixed
 4.0.0
