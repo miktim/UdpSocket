@@ -14,22 +14,21 @@ import java.net.SocketException;
 
 public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable {
     
-    public static String VERSION = "4.0.0";
+    public static String VERSION = "4.0.1";
     InetSocketAddress remote;
 
     public UdpSocket(InetSocketAddress remoteSoc, NetworkInterface netIf) throws IOException {
-        super(null);
+        super(null); // creates unbounded socket
         setReuseAddress(true);
         remote = remoteSoc;
         setNetworkInterface(netIf);
         if (isMulticast()) {
             joinGroup(remote, netIf);
-//            joinGroup(remote.getAddress());
         }
     }
 
-    public UdpSocket(InetAddress addr, int port, String netIfName) throws IOException {
-        this(new InetSocketAddress(addr, port), NetworkInterface.getByName(netIfName));
+    public UdpSocket(InetAddress remoteAddr, int remotePort, String netIfName) throws IOException {
+        this(new InetSocketAddress(remoteAddr, remotePort), NetworkInterface.getByName(netIfName));
     }
 
     public interface Handler {
@@ -59,7 +58,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
                 try {
                     DatagramPacket dp
                             = new DatagramPacket(new byte[us.payloadSize], us.payloadSize);
-                    us.superReceive(dp);
+                    us.receive(dp);
                     us.handler.onPacket(us, dp);
                 } catch (java.net.SocketTimeoutException e) {
                 } catch (Exception e) {
@@ -106,7 +105,6 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
     Handler handler;
     boolean isRunning; // receiving in progress
     private int payloadSize = 1500; // maximum length of received datagrams
-    static final int SO_TIMEOUT = 500; //socket timeout
     
     public boolean isReceiving() {
         return isRunning;
@@ -130,18 +128,16 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
             throw new NullPointerException("No handler");
         }
         this.handler = handler;
-        this.setSoTimeout(SO_TIMEOUT);
         (new UdpListener(this)).start();
-    }
-
-    void superReceive(DatagramPacket dp) throws IOException {
-        super.receive(dp); // need for listener
     }
 
     @Override
     public void receive(DatagramPacket dp) throws IOException {
         bind();
-        superReceive(dp);
+        if (dp.getAddress() == null) {
+            dp.setSocketAddress(remote);
+        }
+        super.receive(dp); 
     }
 
     public void send(byte[] buf) throws IOException {

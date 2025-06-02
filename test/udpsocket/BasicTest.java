@@ -81,8 +81,8 @@ public class BasicTest {
         for (InetSocketAddress remote : sockets) {
             us = new UdpSocket(remote, NetworkInterface.getByName(INTF));
             if(us.isMulticast()) {
-                us.setLoopbackMode(false);//.join();
- //               us.setTimeToLive(10);
+                us.setLoopbackMode(false);// enable loopback
+//               us.setTimeToLive(10);
             }
             log("\n"+us);
             try {

@@ -1,4 +1,4 @@
-Java SE 7+ /Android 4+ UDP client and server, MIT (c) 2025 miktim@mail.ru  
+UdpSocket. Java SE 7+/Android 4+ UDP client and server, MIT (c) 2025 miktim@mail.ru  
   
 The UDP protocol does not guarantee datagram delivery, ordering, or duplicate protection. 
 The maximum safe UDP payload size is ~508 bytes.  
@@ -8,7 +8,7 @@ Based on the Java MulticastSocket class
 Advantage of this class:  
   - supported by old and current versions of Java and Android.  
 Disadvantage:  
-  - does not always work and not on all devices;  
+  - does not always work and not on all Android devices;  
   - does not support anycast and source-specific multicast.  
 
 Note: don't forget to open the required UDP port in your firewall.  
@@ -18,14 +18,14 @@ Note: don't forget to open the required UDP port in your firewall.
     Class UdpSocket  
   
       Constants:  
-        String VERSION = "4.0.0"  
+        String VERSION = "4.0.1"  
   
       Constructors:  
         Constructor creates reuse enabled unbinded sockets.
         Sets the network interface for outgoing multicast datagrams sent on this socket.
-        For multicast remote address joins address group on interface
+        For multicast remote address joins address group on interface.
   
-        UdpSocket(InetSocketAddress remote, NetworkInterface netIf) throws IOException; 
+        UdpSocket(InetSocketAddress remoteSoc, NetworkInterface netIf) throws IOException; 
         UdpSocket(InetAddress remoteAddr, int remotePort, String netIfName) throws IOException;
   
       interface Handler {
@@ -36,17 +36,20 @@ Note: don't forget to open the required UDP port in your firewall.
       }
   
       Methods:  
-        static void isAvailable(int port);
+        static void isAvailable(int port);  
+  
+All send/receive methods bind an unbound socket to the remote port and 
+set the unassigned address/port of the datagram to the address/port of the remote socket.  
   
         InetSocketAddress getRemote();
         UdpSocket bind() throws IOException;
-          - binds unbounded socket to 0.0.0.0/remotePort
+          - binds unbounded socket to remote port
         void send(DatagramPacket dp) throws IOException;
-          - binds unbounded socket to 0.0.0.0/remotePort
-          - if packet remote address unspecified, fills it with remote socket
+          - send datagram
         void send(byte[] buf) throws IOException;
+          - send buffer
         void receive(DatagramPacket dp) throws IOException;
-          - binds unbounded socket to 0.0.0.0/remotePort
+          - wait datagram
             
         UdpSocket setPayloadSize(int size);
           - sets max size of received datagram
@@ -55,11 +58,7 @@ Note: don't forget to open the required UDP port in your firewall.
         boolean isReceiving();
           - returns receiving state
         void receive(UdpSocket.Handler handler);
-          - binds unbounded socket to 0.0.0.0/remotePort
-          - starts receiving datagram
-        void receive(DatagramPacket dp) throws IOException;
-          - binds unbounded socket to 0.0.0.0/remotePort
-          - waits datagram
+          - calls handler onStart method and starts receiving datagram
   
         void close();
           - [stops receiving,] close socket
