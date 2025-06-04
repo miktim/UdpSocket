@@ -19,17 +19,23 @@ import java.net.SocketException;
 
 public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable {
     
-    public static String VERSION = "4.0.2";
+    public static String VERSION = "4.0.3";
     InetSocketAddress remote;
 
     public UdpSocket(InetSocketAddress remoteSoc, NetworkInterface netIf) throws IOException {
         super(null); // creates unbounded socket
         setReuseAddress(true);
         setLoopbackMode(true); // disable loopback
+        setBroadcast(true);
         remote = remoteSoc;
-        setNetworkInterface(netIf);
+        if(netIf != null)
+            setNetworkInterface(netIf);
         if (isMulticast()) {
-            joinGroup(remote, netIf);
+            if (netIf != null) {
+                joinGroup(remote, netIf); 
+            } else {
+                joinGroup(remote.getAddress());
+            }
         }
     }
 

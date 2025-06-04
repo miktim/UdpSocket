@@ -1,7 +1,6 @@
 /**
  * UdpSocket BasicTest, MIT (c) 2025 miktim@mail.ru
  */
-
 package udpsocket;
 
 import java.io.IOException;
@@ -34,7 +33,7 @@ public class BasicTest {
     InetSocketAddress mcastSoc; // MC_ADDRESS socket
     InetSocketAddress freemcSoc; // MU_ADDRES socket
     InetSocketAddress wildSoc; // 0.0.0.0
-    
+
     InetSocketAddress[] sockets;
 
     BasicTest() throws UnknownHostException, SocketException {
@@ -46,8 +45,8 @@ public class BasicTest {
         InetAddress hostAddr = getInet4Address(NetworkInterface.getByName(INTF));
         hostSoc = new InetSocketAddress(hostAddr, PORT);
         wildSoc = new InetSocketAddress(PORT);
-        
-        sockets = new InetSocketAddress[]{loopSoc, hostSoc,bcastSoc, mcastSoc, freemcSoc, wildSoc};
+
+        sockets = new InetSocketAddress[]{loopSoc, bcastSoc, mcastSoc, freemcSoc, hostSoc, wildSoc};
     }
 
     void log(Object msg) {
@@ -67,7 +66,7 @@ public class BasicTest {
         }
         return null;
     }
-    
+
     UdpSocket.Handler handler = new UdpSocket.Handler() {
         @Override
         public void onStart(UdpSocket us) {
@@ -76,7 +75,7 @@ public class BasicTest {
 
         @Override
         public void onPacket(UdpSocket us, DatagramPacket dp) {
-            log("onPacket: " + new String(Arrays.copyOfRange(dp.getData(),dp.getOffset(),dp.getLength())));
+            log("onPacket: " + new String(Arrays.copyOfRange(dp.getData(), dp.getOffset(), dp.getLength())));
         }
 
         @Override
@@ -98,17 +97,27 @@ public class BasicTest {
     void run() throws IOException, InterruptedException {
         log(format("UdpSocket %s basic test", UdpSocket.VERSION));
         if (!UdpSocket.isAvailable(PORT)) {
-            log("Port unavailible: " + PORT);
+            log("\nPort unavailible: " + PORT);
             System.exit(1);
         }
         UdpSocket us;
+
+        log("\nSend/receive with null multicast interface");
+        us = new UdpSocket(freemcSoc, null);
+        us.setLoopbackMode(false);// enable loopback
+        log(us);
+        us.receive(handler);
+        us.send("Send/receive OK".getBytes());
+        sleep(200);
+        us.close();
+        
         for (InetSocketAddress remote : sockets) {
             us = new UdpSocket(remote, NetworkInterface.getByName(INTF));
             us.bind();
-            if(us.isMulticast()) {
+            if (us.isMulticast()) {
                 us.setLoopbackMode(false);// enable loopback
             }
-            log("\n"+us);
+            log("\n" + us);
             try {
                 us.receive(handler);
                 us.send("Send/receive OK".getBytes());

@@ -1,13 +1,13 @@
 UdpSocket. Java SE 7+/Android 4+ UDP client and server, MIT (c) 2025 miktim@mail.ru  
  
-Based on the Java MulticastSocket class  
+Extends the Java MulticastSocket class  
   
-Advantage of this class:  
+Advantage of MulticastSocket class:  
   - supported by old and current versions of Java and Android.  
   
 Disadvantage:  
-  - does not support source-specific multicast.
-
+  - does not support source-specific multicast (see Java MulticastChannel class).  
+  
 Notes:  
   - the UDP protocol does not guarantee datagram delivery, ordering, or duplicate protection.  
   - the maximum safe UDP payload size is ~508 bytes.  
@@ -20,12 +20,12 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
     Class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable  
   
       Constants:  
-        String VERSION = "4.0.2"  
+        String VERSION = "4.0.3"  
   
       Constructors:  
-        Constructors create unbounded sockets with multicast loopback disabled and reuse enabled.
-        Sets the network interface for outgoing multicast datagrams.
-        For multicast remote address joins address group on interface.
+        Constructors create unbounded sockets with reuse enabled, loopback disabled and broadcast on.
+        Sets the network interface (may be null) for outgoing multicast datagrams.
+        For multicast remote address joins address group.
   
         UdpSocket(InetSocketAddress remoteSoc, NetworkInterface netIf) throws IOException; 
         UdpSocket(InetAddress remoteAddr, int remotePort, String netIfName) throws IOException;
@@ -34,7 +34,7 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
         static void isAvailable(int port);  
           - checks whether the port is available.
 
-        All send/receive methods bind an unbound socket to the remote port and  
+        All send/receive methods bind an unbounded socket to the remote port and  
         set the unassigned address/port of the datagram to the address/port of  
         the remote socket.  
   
@@ -70,6 +70,9 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
         void onClose(UdpSocket us);
           - called before closing datagram socket
       }
+    
+      String toString();  
+        - returns socket info  
   
   See also inherited DatagramSocket and MulticastSocket methods:  
       https://docs.oracle.com/javase/7/docs/api/java/net/DatagramSocket.html  
