@@ -13,7 +13,7 @@ Notes:
   - the maximum safe UDP payload size is ~508 bytes.  
   - don't forget to open the required UDP port in your firewall.  
   
-The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8 for target JDK1.7  
+The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8 for target JRE1.7  
   
     package org.miktim.udpsocket  
   
@@ -65,8 +65,10 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
       interface Handler {
         void onStart(UdpSocket us);
         void onError(UdpSocket us, Exception e);
+          - the socket will be closed after the method exits
         void onPacket(UdpSocket us, DatagramPacket dp);
-        void onClose(UdpSocket us); // called before closing datagram socket
+        void onClose(UdpSocket us);
+          - called before closing datagram socket
       }
   
   See also inherited DatagramSocket and MulticastSocket methods:  
