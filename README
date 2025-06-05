@@ -20,7 +20,7 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
     Class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable  
   
       Constants:  
-        String VERSION = "4.0.3"  
+        String VERSION = "4.0.4"  
   
       Constructors:  
         Constructors create unbounded sockets with reuse enabled, loopback disabled and broadcast on.
@@ -60,7 +60,7 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
           - calls handler onStart method and starts receiving datagrams
   
         void close();
-          - [stops receiving,] close socket
+          - [stops receiving,] [leaves initial multicast group,] closes socket
   
       interface Handler {
         void onStart(UdpSocket us);

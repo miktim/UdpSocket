@@ -80,7 +80,7 @@ public class BasicTest {
 
         @Override
         public void onError(UdpSocket uc, Exception e) {
-            log("onError:");
+            log("onError:\n");
             e.printStackTrace();
         }
 
@@ -103,7 +103,7 @@ public class BasicTest {
         UdpSocket us;
 
         log("\nSend/receive with null multicast interface");
-        us = new UdpSocket(freemcSoc, null);
+        us = new UdpSocket(freemcSoc.getAddress(), freemcSoc.getPort(), null);
         us.setLoopbackMode(false);// enable loopback
         log(us);
         us.receive(handler);
@@ -123,7 +123,7 @@ public class BasicTest {
                 us.send("Send/receive OK".getBytes());
                 sleep(200);
             } catch (IOException e) {
-                log("Send failed:");
+                log("Send failed:\n");
                 e.printStackTrace();
                 sleep(200);
             }

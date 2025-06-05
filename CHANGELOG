@@ -1,3 +1,5 @@
+4.0.4
+  - leave initial multicast group
 4.0.3
   - fixed null multicast interface 
 4.0.2
