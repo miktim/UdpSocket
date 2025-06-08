@@ -1,3 +1,6 @@
+4.0.5
+  - fixed isAvailiable method
+  - fixed toString method
 4.0.4
   - close leaves initial multicast group
 4.0.3

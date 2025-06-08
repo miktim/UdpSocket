@@ -19,7 +19,7 @@ import java.net.SocketException;
 
 public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable {
 
-    public static String VERSION = "4.0.4";
+    public static String VERSION = "4.0.5";
     InetSocketAddress remote;
     NetworkInterface ni;
 
@@ -52,6 +52,24 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
         void onPacket(UdpSocket us, DatagramPacket dp);
 
         void onClose(UdpSocket us); // called before closing datagram socket
+    }
+
+    Handler handler;
+    boolean isRunning; // receiving in progress
+    private int payloadSize = 1500; // maximum length of received datagrams
+    static int SO_TIMEOUT = 1000; // socket timeout milliseconds
+    
+    public boolean isReceiving() {
+        return isRunning;
+    }
+
+    public UdpSocket setPayloadSize(int size) {
+        payloadSize = size;
+        return this;
+    }
+
+    public int getPayloadSize() {
+        return payloadSize;
     }
 
     class SocketListener extends Thread {
@@ -87,15 +105,31 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
         }
     }
 
+    public void receive(Handler handler) throws IOException {
+        bind();
+        if (isReceiving()) {
+            throw new IllegalStateException("Already receiving");
+        }
+        if (handler == null) {
+            throw new NullPointerException("No handler");
+        }
+        this.handler = handler;
+        this.setSoTimeout(SO_TIMEOUT);
+        (new SocketListener(this)).start();
+    }
+
     public static boolean isAvailable(int port) {
 // https://stackoverflow.com/questions/434718/sockets-discover-port-availability-using-java
-        DatagramSocket soc;
-        try {
-            soc = new DatagramSocket(port);
-        } catch (SocketException e) {
+        try (DatagramSocket soc = new DatagramSocket(port);) {
+            soc.setBroadcast(true);
+            soc.setSoTimeout(500);       
+            DatagramPacket dp = new DatagramPacket(new byte[1], 1,
+                    InetAddress.getByName("255.255.255.255"), port);
+            soc.send(dp);
+            soc.receive(dp);
+        } catch (IOException e) {
             return false;
         }
-        soc.close();
         return true;
     }
 
@@ -126,35 +160,6 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
 
     public final boolean isMulticast() {
         return remote.getAddress().isMulticastAddress();
-    }
-
-    Handler handler;
-    boolean isRunning; // receiving in progress
-    private int payloadSize = 1500; // maximum length of received datagrams
-
-    public boolean isReceiving() {
-        return isRunning;
-    }
-
-    public UdpSocket setPayloadSize(int size) {
-        payloadSize = size;
-        return this;
-    }
-
-    public int getPayloadSize() {
-        return payloadSize;
-    }
-
-    public void receive(Handler handler) throws IOException {
-        bind();
-        if (isReceiving()) {
-            throw new IllegalStateException("Already receiving");
-        }
-        if (handler == null) {
-            throw new NullPointerException("No handler");
-        }
-        this.handler = handler;
-        (new SocketListener(this)).start();
     }
 
     @Override
@@ -212,7 +217,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
             sb.append(String.format("IP_MULTICAST_IF: %s IP_MULTICAST_TTL: %d IP_MULTICAST_LOOP: %b",
                     intf != null ? intf.getDisplayName() : "null",
                     getTimeToLive(),
-                    getLoopbackMode()));
+                    !getLoopbackMode()));
         } catch (IOException e) {
             sb.append(e.getClass().getName());
         }

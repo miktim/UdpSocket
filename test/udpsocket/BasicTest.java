@@ -75,7 +75,9 @@ public class BasicTest {
 
         @Override
         public void onPacket(UdpSocket us, DatagramPacket dp) {
-            log("onPacket: " + new String(Arrays.copyOfRange(dp.getData(), dp.getOffset(), dp.getLength())));
+            log(format("onPacket: %s from %s",
+                    new String(Arrays.copyOfRange(dp.getData(), dp.getOffset(), dp.getLength())),
+                    dp.getSocketAddress().toString()));
         }
 
         @Override
@@ -97,7 +99,7 @@ public class BasicTest {
     void run() throws IOException, InterruptedException {
         log(format("UdpSocket %s basic test", UdpSocket.VERSION));
         if (!UdpSocket.isAvailable(PORT)) {
-            log("\nPort unavailible: " + PORT);
+            log(format("\nPort %d unavailible!\n\n", PORT));
             System.exit(1);
         }
         UdpSocket us;
