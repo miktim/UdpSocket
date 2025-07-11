@@ -3,7 +3,7 @@ UdpSocket. Java SE 7+/Android 4+ UDP client and server, MIT (c) 2025 miktim@mail
 Extends the Java MulticastSocket class  
   
 Advantage of MulticastSocket class:  
-  - supported by old and current versions of Java and Android.  
+  - this class is supported by old and current versions of Java and Android.  
   
 Disadvantage:  
   - does not support source-specific multicast (see Java MulticastChannel class).  
@@ -60,9 +60,9 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
           - calls handler onStart method and starts receiving datagrams
   
         void close();
-          - [stops receiving,] [leaves initial multicast group,] closes socket
+          - [stops receiving,] [calls the handler's onClose method,] [leaves initial multicast group,] closes socket
   
-      interface Handler {
+      interface UdpSocket.Handler {
         void onStart(UdpSocket us);
         void onError(UdpSocket us, Exception e);
           - the socket will be closed after the method exits
@@ -80,5 +80,6 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
       https://docs.oracle.com/javase/7/docs/api/java/net/DatagramPacket.html  
   
   Android Multicast Troubleshooting:
-      https://www.androidbugfix.com/2022/05/why-does-multicast-reception-not-work.html  
+      https://stackoverflow.com/questions/13221736/android-device-not-receiving-multicast-package  
+      https://stackoverflow.com/questions/27917605/android-multicastsocket-joingroup-doesnt-trigger-sending-igmp-message  
   
