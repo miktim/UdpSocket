@@ -60,7 +60,7 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
           - calls handler onStart method and starts receiving datagrams
   
         void close();
-          - [stops receiving,] [calls the handler's onClose method,] [leaves initial multicast group,] closes socket
+          - [stops receiving, calls the handler's onClose method,] [leaves initial multicast group,] closes socket
   
       interface UdpSocket.Handler {
         void onStart(UdpSocket us);
