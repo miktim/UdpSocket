@@ -1,5 +1,5 @@
 /**
- * UdpSocket BasicTest, MIT (c) 2025 miktim@mail.ru
+ * UdpSocket BasicTest, MIT (c) 2025-2026 miktim@mail.ru
  */
 package udpsocket;
 
@@ -20,8 +20,8 @@ import org.miktim.udpsocket.UdpSocket;
 public class BasicTest {
 
     static final int PORT = 9099;
-    static final String INTF = "eth1"; // local interface name;
-
+    static final String INTF = "eth0"; // local interface name;
+    static final int DELAY = 200; // millis, sleep time
     static final String MU_ADDRESS = "224.0.1.191"; // iana unassigned multicast
 //    static final String MC_ADDRESS = "224.0.0.1"; // iana All Systems on this Subnet
     static final String MC_ADDRESS = "FF09::114"; // iana private experiment
@@ -110,8 +110,9 @@ public class BasicTest {
         log(us);
         us.receive(handler);
         us.send("Send/receive OK".getBytes());
-        sleep(200);
+        sleep(DELAY);
         us.close();
+//        sleep(DELAY);
         
         for (InetSocketAddress remote : sockets) {
             us = new UdpSocket(remote, NetworkInterface.getByName(INTF));
@@ -123,13 +124,14 @@ public class BasicTest {
             try {
                 us.receive(handler);
                 us.send("Send/receive OK".getBytes());
-                sleep(200);
+                sleep(DELAY);
             } catch (IOException e) {
                 log("Send failed:\n");
                 e.printStackTrace();
-                sleep(200);
+                sleep(DELAY);
             }
             us.close();
+//            sleep(DELAY);
         }
         log("\nCompleted");
     }

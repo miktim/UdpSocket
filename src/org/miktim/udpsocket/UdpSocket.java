@@ -19,7 +19,7 @@ import java.net.SocketException;
 
 public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable {
 
-    public static String VERSION = "4.0.5";
+    public static final String VERSION = "4.1.0";
     InetSocketAddress remote;
     NetworkInterface ni;
 
@@ -139,7 +139,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
         }
         return this;
     }
-
+ 
     public InetSocketAddress getRemote() {
         return remote;
     }
@@ -173,6 +173,10 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
 
     public void send(byte[] buf) throws IOException {
         send(new DatagramPacket(buf, buf.length));
+    }
+
+    public void send(byte[] buf, int off, int len) throws IOException {
+        send(new DatagramPacket(buf, off, len));
     }
 
     @Override

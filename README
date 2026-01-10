@@ -21,7 +21,7 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
     Class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable  
   
       Constants:  
-        String VERSION = "4.0.5"  
+        String VERSION = "4.1.0"  
   
       Constructors:  
         Constructors create unbounded sockets with reuse enabled, loopback disabled and broadcast on.
@@ -35,18 +35,23 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
         static void isAvailable(int port);  
           - checks whether the port is available.
 
-        All send/receive methods bind an unbounded socket to the remote port and  
+        All send/receive methods bind an unbound socket to the remote port and  
         set the unassigned address/port of the datagram to the address/port of  
         the remote socket.  
   
         InetSocketAddress getRemote();
-          - returns remote socket
+          - returns remote socket address
+        InetSocketAddress getLocal() throws IOException;
+          - returns socket address based on remote port, interface
+            and remote address type (IPv4/IPv6)
         UdpSocket bind() throws IOException;
-          - binds unbounded socket to remote port
+          - binds unbound socket to remote port
         void send(DatagramPacket dp) throws IOException;
           - send datagram
         void send(byte[] buf) throws IOException;
-          - send buffer
+          - send bytes
+        void send(byte[] buf, int off, int len) throws IOException;
+          - send bytes
         void receive(DatagramPacket dp) throws IOException;
           - wait datagram
             
