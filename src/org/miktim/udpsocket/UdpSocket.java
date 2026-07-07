@@ -1,5 +1,5 @@
 /*
- * UdpSocket package, MIT (c) 2025 miktim@mail.ru
+ * UdpSocket package, MIT (c) 2025-2026 miktim@mail.ru
  * Manage UDP via MulticastSocket class
  *
  * Created 2025-06-01
@@ -19,9 +19,9 @@ import java.net.SocketException;
 
 public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable {
 
-    public static final String VERSION = "4.1.0";
+    public static final String VERSION = "4.2.1";
     InetSocketAddress remote;
-    NetworkInterface ni;
+    NetworkInterface intf;
 
     public UdpSocket(InetSocketAddress remoteSoc, NetworkInterface netIf) throws IOException {
         super(null); // creates unbounded socket
@@ -29,7 +29,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
         setLoopbackMode(true); // disable loopback
         setBroadcast(true);
         remote = remoteSoc;
-        ni = netIf; // save initial interface
+        intf = netIf; // save initial interface
         if (netIf != null) {
             setNetworkInterface(netIf);
         }
@@ -127,7 +127,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
                     InetAddress.getByName("255.255.255.255"), port);
             soc.send(dp);
             soc.receive(dp);
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException e) {
             return false;
         }
         return true;
@@ -145,12 +145,11 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
     }
 
     public InetSocketAddress getLocal() throws IOException {
-        NetworkInterface ni = getNetworkInterface();
-        if (ni == null) {
+        if (intf == null) {
             return new InetSocketAddress(remote.getPort());
         }
         Class cls = remote.getAddress().getClass();
-        for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
+        for (InterfaceAddress ia : intf.getInterfaceAddresses()) {
             if (ia.getAddress().getClass().equals(cls)) {
                 return new InetSocketAddress(ia.getAddress(), remote.getPort());
             }
@@ -161,13 +160,19 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
     public final boolean isMulticast() {
         return remote.getAddress().isMulticastAddress();
     }
-
+    
+    public DatagramPacket receive() throws IOException {
+        DatagramPacket dp = new DatagramPacket(new byte[payloadSize], payloadSize);
+        receive(dp);
+        return dp;
+    }
+    
     @Override
     public void receive(DatagramPacket dp) throws IOException {
         bind();
-        if (dp.getAddress() == null) {
-            dp.setSocketAddress(remote);
-        }
+//        if (dp.getAddress() == null) {
+//            dp.setSocketAddress(remote);
+//        }
         super.receive(dp);
     }
 
@@ -181,7 +186,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
 
     @Override
     public void send(DatagramPacket dp) throws IOException {
-        bind();
+//        bind();
         if (dp.getAddress() == null) {
             dp.setSocketAddress(remote);
         }
@@ -197,7 +202,7 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
         }
         try {
             if (isMulticast()) {
-                leaveGroup(remote, ni);
+                leaveGroup(remote, intf);
             }
         } catch (IOException ignore) {
 
@@ -209,19 +214,19 @@ public class UdpSocket extends MulticastSocket implements Closeable, AutoCloseab
     public String toString() {
         StringBuilder sb = new StringBuilder();
         try {
-            sb.append(String.format("UdpSocket remote: %s bound to: %s\n\r",
+            sb.append(String.format("UdpSocket remote: %s bound: %s\r\n",
                     getRemote(), getLocalSocketAddress()));
             sb.append("Options:\r\n");
-            sb.append(String.format("SO_SNDBUF: %d SO_RCVBUF: %d SO_REUSEADDR: %b SO_BROADCAST: %b\n\r",
+            sb.append(String.format("SO_SNDBUF: %d SO_RCVBUF: %d SO_REUSEADDR: %b SO_BROADCAST: %b\r\n",
                     getSendBufferSize(),
                     getReceiveBufferSize(),
                     getReuseAddress(),
                     getBroadcast()));
             NetworkInterface intf = getNetworkInterface();
-            sb.append(String.format("IP_MULTICAST_IF: %s IP_MULTICAST_TTL: %d IP_MULTICAST_LOOP: %b",
+            sb.append(String.format("IP_MULTICAST_IF: %s IP_MULTICAST_TTL: %d IP_MULTICAST_LOOP: %s",
                     intf != null ? intf.getDisplayName() : "null",
                     getTimeToLive(),
-                    !getLoopbackMode()));
+                    getLoopbackMode() ? "disabled" : "enabled"));
         } catch (IOException e) {
             sb.append(e.getClass().getName());
         }

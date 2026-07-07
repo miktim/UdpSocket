@@ -1,4 +1,4 @@
-UdpSocket. Java SE 7+/Android 4+ UDP client and server, MIT (c) 2025 miktim@mail.ru  
+UdpSocket. Java SE 7+/Android 4+ UDP client and server, MIT (c) 2025-2026 miktim@mail.ru
   
 Extends the Java MulticastSocket class  
   
@@ -10,8 +10,9 @@ Disadvantage:
   - does not support source-specific multicast (see Java MulticastChannel class).  
   
 Notes:  
-  - the UDP protocol does not guarantee datagram delivery, ordering, or duplicate protection.  
-  - the maximum safe UDP payload size is ~508 bytes.  
+  - the UDP protocol does not guarantee datagram delivery, ordering,
+    or duplicate protection;  
+  - the maximum safe UDP payload size is ~508 bytes;  
   - don't forget to open the required UDP port in your firewall.  
   
 The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8 for target JRE1.7  
@@ -21,52 +22,61 @@ The jar ./dist/udpsocket-... file was generated with debugging info using JDK1.8
     Class UdpSocket extends MulticastSocket implements Closeable, AutoCloseable  
   
       Constants:  
-        String VERSION = "4.1.0"  
+        String VERSION = "4.2.1"  
   
       Constructors:  
-        Constructors create unbounded sockets with reuse enabled, loopback disabled and broadcast on.
-        Sets the network interface (may be null) for outgoing multicast datagrams.
-        For multicast remote address joins address group.
-  
+        Constructors create unbounded sockets with reuse enabled,
+        broadcast on, loopback disabled and TTL=1.
+        Sets the network interface (may be null) for the remote
+        multicast address and joins the multicast group.
+
         UdpSocket(InetSocketAddress remoteSoc, NetworkInterface netIf) throws IOException; 
         UdpSocket(InetAddress remoteAddr, int remotePort, String netIfName) throws IOException;
   
       Methods:  
         static void isAvailable(int port);  
-          - checks whether the port is available.
+          - checks whether the port is available. Not very reliable.
 
-        All send/receive methods bind an unbound socket to the remote port and  
-        set the unassigned address/port of the datagram to the address/port of  
-        the remote socket.  
-  
+        boolean isMulticast();
+          - returns true if the remote address is a multicast address
         InetSocketAddress getRemote();
           - returns remote socket address
         InetSocketAddress getLocal() throws IOException;
           - returns socket address based on remote port, interface
             and remote address type (IPv4/IPv6)
+            See also: java.net.MulticastSocket.getInterface()
         UdpSocket bind() throws IOException;
-          - binds unbound socket to remote port
+          - binds unbound socket to the remote port
+            
+        UdpSocket setPayloadSize(int size);
+          - sets the size of the DatagramPacket's buffer for received datagrams
+        int getPayloadSize();
+          - default: 1500 bytes
+
+        Receiving methods bind an unbound socket to the remote port.  
+        Sending methods set the unassigned address/port of the datagram
+        to the address/port of the remote socket.  
+  
         void send(DatagramPacket dp) throws IOException;
           - send datagram
         void send(byte[] buf) throws IOException;
           - send bytes
         void send(byte[] buf, int off, int len) throws IOException;
           - send bytes
+        DatagramPacket receive() throws IOException;
+          - wait datagram;
         void receive(DatagramPacket dp) throws IOException;
           - wait datagram
-            
-        UdpSocket setPayloadSize(int size);
-          - sets max size of receiving datagram
-        int getPayloadSize();
-          - default: 1500 bytes
-        boolean isReceiving();
-          - returns receiving state
+            See also: java.net.DatagramSocket.setSoTimeout(int timeout)
 
         void receive(UdpSocket.Handler handler);
           - calls handler onStart method and starts receiving datagrams
+        boolean isReceiving();
+          - returns receiving state
   
         void close();
-          - [stops receiving, calls the handler's onClose method,] [leaves initial multicast group,] closes socket
+          - [stops receiving,] [leaves initial multicast group,]
+            [calls the handler's onClose method,] closes socket
   
       interface UdpSocket.Handler {
         void onStart(UdpSocket us);

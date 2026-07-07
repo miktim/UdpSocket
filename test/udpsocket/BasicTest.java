@@ -5,15 +5,13 @@ package udpsocket;
 
 import java.io.IOException;
 import static java.lang.String.format;
-import static java.lang.Thread.sleep;
 import java.net.DatagramPacket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.Enumeration;
 import org.miktim.udpsocket.UdpSocket;
 
@@ -21,36 +19,27 @@ public class BasicTest {
 
     static final int PORT = 9099;
     static final String INTF = "eth0"; // local interface name;
-    static final int DELAY = 200; // millis, sleep time
-    static final String MU_ADDRESS = "224.0.1.191"; // iana unassigned multicast
-//    static final String MC_ADDRESS = "224.0.0.1"; // iana All Systems on this Subnet
-    static final String MC_ADDRESS = "FF09::114"; // iana private experiment
-//    static final String MS_ADDRESS = "232.0.1.199"; //iana source-specific
+    static final int DELAY = 500; // millis, sleep time
+    static final boolean DISABLE_LOOPBACK = true;
+    static final String[] ADDRESSES = new String[]{
+        null, // INTF IPv4 address
+        "localhost", // host address
+        "0.0.0.0", // wild
+        "127.0.0.1", // loopback 127.0.0.1
+        "225.225.225.225", // broadcast
+        "224.0.1.191", // iana unassigned multicast
+        "224.0.0.1", // iana All Systems on this Subnet
+        "FF09::114", // iana private experiment
+        "232.0.1.199", //iana source-specific
+        null
+    };
 
-    InetSocketAddress loopSoc; // loopback 127.0.0.1 socket
-    InetSocketAddress hostSoc; // localhost
-    InetSocketAddress bcastSoc; // broadcast 225.225.225.225 
-    InetSocketAddress mcastSoc; // MC_ADDRESS socket
-    InetSocketAddress freemcSoc; // MU_ADDRES socket
-    InetSocketAddress wildSoc; // 0.0.0.0
-
-    InetSocketAddress[] sockets;
-
-    BasicTest() throws UnknownHostException, SocketException {
-
-        loopSoc = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), PORT);
-        bcastSoc = new InetSocketAddress(InetAddress.getByName("255.255.255.255"), PORT);
-        mcastSoc = new InetSocketAddress(InetAddress.getByName(MC_ADDRESS), PORT);
-        freemcSoc = new InetSocketAddress(InetAddress.getByName(MU_ADDRESS), PORT);
-        InetAddress hostAddr = getInet4Address(NetworkInterface.getByName(INTF));
-        hostSoc = new InetSocketAddress(hostAddr, PORT);
-        wildSoc = new InetSocketAddress(PORT);
-
-        sockets = new InetSocketAddress[]{loopSoc, bcastSoc, mcastSoc, freemcSoc, hostSoc, wildSoc};
-    }
-
-    void log(Object msg) {
-        System.out.println(String.valueOf(msg));
+    static {
+        try {
+            ADDRESSES[0] = getInet4Address(NetworkInterface.getByName(INTF))
+                    .getHostAddress();
+        } catch (SocketException ex) {
+        }
     }
 
     static InetAddress getInet4Address(NetworkInterface ni) {
@@ -67,30 +56,12 @@ public class BasicTest {
         return null;
     }
 
-    UdpSocket.Handler handler = new UdpSocket.Handler() {
-        @Override
-        public void onStart(UdpSocket us) {
-            log("onStart");
-        }
+    static void log(Object msg) {
+        System.out.println(msg);
+    }
 
-        @Override
-        public void onPacket(UdpSocket us, DatagramPacket dp) {
-            log(format("onPacket: %s from %s",
-                    new String(Arrays.copyOfRange(dp.getData(), dp.getOffset(), dp.getLength())),
-                    dp.getSocketAddress().toString()));
-        }
-
-        @Override
-        public void onError(UdpSocket uc, Exception e) {
-            log("onError:\n");
-            e.printStackTrace();
-        }
-
-        @Override
-        public void onClose(UdpSocket uc) {
-            log("onClose");
-        }
-    };
+    BasicTest() throws UnknownHostException, SocketException {
+    }
 
     public static void main(String[] args) throws IOException, InterruptedException {
         (new BasicTest()).run();
@@ -104,31 +75,23 @@ public class BasicTest {
         }
         UdpSocket us;
 
-        log("\nSend/receive with null multicast interface");
-        us = new UdpSocket(freemcSoc.getAddress(), freemcSoc.getPort(), null);
-        us.setLoopbackMode(false);// enable loopback
-        log(us);
-        us.receive(handler);
-        us.send("Send/receive OK".getBytes());
-        sleep(DELAY);
-        us.close();
-//        sleep(DELAY);
-        
-        for (InetSocketAddress remote : sockets) {
-            us = new UdpSocket(remote, NetworkInterface.getByName(INTF));
+        for (String address : ADDRESSES) {
+            us = new UdpSocket(
+                    InetAddress.getByName(address), PORT, INTF);
+            us.getLocal();
             us.bind();
-            if (us.isMulticast()) {
-                us.setLoopbackMode(false);// enable loopback
-            }
+            us.setLoopbackMode(DISABLE_LOOPBACK);//
+            us.setSoTimeout(DELAY);
             log("\n" + us);
             try {
-                us.receive(handler);
                 us.send("Send/receive OK".getBytes());
-                sleep(DELAY);
+                DatagramPacket dp = us.receive();
+                log(new String(dp.getData(), 0, dp.getLength()));
+                us.close();
+            } catch (SocketTimeoutException e) {
+                log("Nothing received!");
             } catch (IOException e) {
-                log("Send failed:\n");
-                e.printStackTrace();
-                sleep(DELAY);
+                log(e);
             }
             us.close();
 //            sleep(DELAY);

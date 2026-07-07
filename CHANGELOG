@@ -1,3 +1,8 @@
+4.2.1
+  - fixed: sending methods do not bind the socket
+  - fixed: getLocal(), toString(), README
+  - receive() method added
+  - udp receiver test added
 4.1.0
   - getLocal() method added
   - send(byte[] buf, int off, int len) method added
